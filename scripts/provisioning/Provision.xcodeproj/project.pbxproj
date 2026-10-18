@@ -1,0 +1,65 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+		A0000001 = {isa = PBXBuildFile; fileRef = A0000002; };
+		A0000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		A0000003 = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Provision.entitlements; sourceTree = "<group>"; };
+		A0000004 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Provision.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0000010 = {isa = PBXGroup; children = (A0000002, A0000003, A0000011); sourceTree = "<group>"; };
+		A0000011 = {isa = PBXGroup; children = (A0000004); name = Products; sourceTree = "<group>"; };
+		A0000020 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A0000001); runOnlyForDeploymentPostprocessing = 0; };
+		A0000030 = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A0000041;
+			buildPhases = (A0000020);
+			buildRules = ();
+			dependencies = ();
+			name = Provision;
+			productName = Provision;
+			productReference = A0000004;
+			productType = "com.apple.product-type.application";
+		};
+		A0000031 = {
+			isa = PBXProject;
+			attributes = {LastUpgradeCheck = 2700; };
+			buildConfigurationList = A0000040;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = A0000010;
+			productRefGroup = A0000011;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (A0000030);
+		};
+		A0000050 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A0000051 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Provision.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.openforticlient;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		A0000040 = {isa = XCConfigurationList; buildConfigurations = (A0000050); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		A0000041 = {isa = XCConfigurationList; buildConfigurations = (A0000051); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+	};
+	rootObject = A0000031;
+}

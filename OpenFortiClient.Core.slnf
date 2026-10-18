@@ -1,0 +1,9 @@
+{
+  "solution": {
+    "path": "OpenFortiClient.slnx",
+    "projects": [
+      "src/OpenFortiClient.Core/OpenFortiClient.Core.csproj",
+      "tests/OpenFortiClient.Core.Tests/OpenFortiClient.Core.Tests.csproj"
+    ]
+  }
+}

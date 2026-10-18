@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:OpenFortiClient.App.ViewModels"
+             x:Class="OpenFortiClient.App.Views.ConnectionEditPage"
+             x:DataType="vm:ConnectionEditViewModel"
+             Title="{Binding Title}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="20" MaximumWidthRequest="620" HorizontalOptions="Center">
+
+            <Label Text="{Binding Title}" Style="{StaticResource Heading}" HorizontalOptions="Center" />
+
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                      ColumnSpacing="16" RowSpacing="12">
+
+                    <Label Text="VPN" Style="{StaticResource FieldLabel}" />
+                    <Label Grid.Column="1" Text="SSL-VPN" VerticalOptions="Center" />
+
+                    <Label Grid.Row="1" Text="Connection Name" Style="{StaticResource FieldLabel}" />
+                    <Entry AutomationId="NameEntry" Grid.Row="1" Grid.Column="1" Text="{Binding Name}" />
+
+                    <Label Grid.Row="2" Text="Description" Style="{StaticResource FieldLabel}" />
+                    <Entry AutomationId="DescriptionEntry" Grid.Row="2" Grid.Column="1" Text="{Binding Description}" />
+
+                    <Label Grid.Row="3" Text="Remote Gateway" Style="{StaticResource FieldLabel}" VerticalOptions="Start" Margin="0,6,0,0" />
+                    <VerticalStackLayout Grid.Row="3" Grid.Column="1" Spacing="8">
+                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Gateways}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:GatewayEntry">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Entry AutomationId="GatewayEntry" Text="{Binding Text}" Placeholder="https://vpn.example.com:443" />
+                                        <Button AutomationId="RemoveGatewayButton" Grid.Column="1" Text="✕" Style="{StaticResource SecondaryButton}"
+                                                ToolTipProperties.Text="Remove this gateway"
+                                                Command="{Binding RemoveCommand}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                        <Button AutomationId="AddGatewayButton" Text="+ Add Remote Gateway" Style="{StaticResource SecondaryButton}"
+                                HorizontalOptions="Start" Command="{Binding AddGatewayCommand}" />
+                        <Label Text="Gateways are tried in this order." Style="{StaticResource Muted}" />
+                    </VerticalStackLayout>
+
+                    <Label Grid.Row="4" Text="Authentication" Style="{StaticResource FieldLabel}" />
+                    <HorizontalStackLayout Grid.Row="4" Grid.Column="1" Spacing="6">
+                        <CheckBox AutomationId="SaveLoginCheckBox" IsChecked="{Binding SaveLogin}" VerticalOptions="Center" />
+                        <Label Text="Save login (password in Keychain)" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+
+                    <Label Grid.Row="5" Text="Username" Style="{StaticResource FieldLabel}" />
+                    <Entry AutomationId="EditUsernameEntry" Grid.Row="5" Grid.Column="1" Text="{Binding Username}" />
+
+                    <Label Grid.Row="6" Text="Client Certificate" Style="{StaticResource FieldLabel}" />
+                    <Grid Grid.Row="6" Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Entry AutomationId="ClientCertificateEntry" Text="{Binding ClientCertificatePath}" Placeholder="Optional: /path/to/cert.pem" />
+                        <Button AutomationId="BrowseCertificateButton" Grid.Column="1" Text="Browse…" Style="{StaticResource SecondaryButton}"
+                                Command="{Binding BrowseCertificateCommand}" />
+                    </Grid>
+
+                    <Label Grid.Row="7" Text="Client Key" Style="{StaticResource FieldLabel}" />
+                    <VerticalStackLayout Grid.Row="7" Grid.Column="1" Spacing="6">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Entry AutomationId="ClientKeyEntry" Text="{Binding ClientKeyPath}" Placeholder="Optional: /path/to/key.pem (moved into the Keychain)" />
+                            <Button AutomationId="BrowseKeyButton" Grid.Column="1" Text="Browse…" Style="{StaticResource SecondaryButton}"
+                                    Command="{Binding BrowseKeyCommand}" />
+                        </Grid>
+                        <HorizontalStackLayout Spacing="8" IsVisible="{Binding ShowKeyInKeychain}">
+                            <Label AutomationId="KeyInKeychainLabel" Text="Key stored in the Keychain. Choose a file to replace it." Style="{StaticResource Muted}" VerticalOptions="Center" />
+                            <Button AutomationId="RemoveKeyButton" Text="Remove" Style="{StaticResource SecondaryButton}" Command="{Binding RemoveKeyCommand}" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
+                    <Label Grid.Row="9" Text="Options" Style="{StaticResource FieldLabel}" VerticalOptions="Start" Margin="0,6,0,0" />
+                    <VerticalStackLayout Grid.Row="9" Grid.Column="1" Spacing="6">
+                        <HorizontalStackLayout Spacing="6">
+                            <CheckBox AutomationId="AutoConnectCheckBox" IsChecked="{Binding AutoConnect}" VerticalOptions="Center" />
+                            <Label Text="Connect when OpenFortiClient starts (needs the saved login)" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Spacing="6">
+                            <CheckBox AutomationId="AlwaysUpCheckBox" IsChecked="{Binding AlwaysUp}" VerticalOptions="Center" />
+                            <Label Text="Always up: reconnect automatically when the connection drops" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
+                    <Label Grid.Row="8" Text="Trusted gateway certificates" Style="{StaticResource FieldLabel}" VerticalOptions="Start" Margin="0,6,0,0" />
+                    <VerticalStackLayout Grid.Row="8" Grid.Column="1" Spacing="8">
+                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding TrustedCerts}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:TrustedCertEntry">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label AutomationId="TrustedCertLabel" Text="{Binding Short, StringFormat='SHA-256 {0}'}" VerticalOptions="Center"
+                                               FontFamily="Menlo" ToolTipProperties.Text="{Binding Digest}" />
+                                        <Button AutomationId="RemoveTrustedCertButton" Grid.Column="1" Text="✕" Style="{StaticResource SecondaryButton}"
+                                                ToolTipProperties.Text="Stop trusting this certificate; you will be asked again"
+                                                Command="{Binding RemoveCommand}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                        <Label AutomationId="NoTrustedCertsLabel" Text="None. You are asked when a gateway shows an unknown certificate."
+                               Style="{StaticResource Muted}" IsVisible="{Binding HasNoTrustedCerts}" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
+                <Button AutomationId="CancelButton" Text="Cancel" Style="{StaticResource SecondaryButton}" WidthRequest="140" Command="{Binding CancelCommand}" />
+                <Button AutomationId="SaveButton" Text="Save" WidthRequest="140" Command="{Binding SaveCommand}" />
+            </HorizontalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

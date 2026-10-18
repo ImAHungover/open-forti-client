@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Authors>ResultLab</Authors>
+  </PropertyGroup>
+
+  <!-- The end-to-end test build of the app (-p:E2E=true) gets its own output folders, so it never
+       mixes with the normal build. Must be set here, before the SDK reads BaseIntermediateOutputPath. -->
+  <PropertyGroup Condition="'$(E2E)' == 'true' And '$(MSBuildProjectName)' == 'OpenFortiClient.App'">
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts/e2e/obj/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts/e2e/bin/</BaseOutputPath>
+  </PropertyGroup>
+</Project>

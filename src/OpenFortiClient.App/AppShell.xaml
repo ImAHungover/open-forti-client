@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:views="clr-namespace:OpenFortiClient.App.Views"
+       x:Class="OpenFortiClient.App.AppShell"
+       Title="OpenFortiClient">
+
+    <!-- Same sections as the FortiClient header: home, settings, notifications, about. -->
+    <TabBar>
+        <ShellContent Title="Connect" Route="connect" ContentTemplate="{DataTemplate views:ConnectPage}" />
+        <ShellContent Title="Settings" Route="settings" ContentTemplate="{DataTemplate views:SettingsPage}" />
+        <ShellContent Title="Notifications" Route="notifications" ContentTemplate="{DataTemplate views:NotificationsPage}" />
+        <ShellContent Title="About" Route="about" ContentTemplate="{DataTemplate views:AboutPage}" />
+    </TabBar>
+
+</Shell>

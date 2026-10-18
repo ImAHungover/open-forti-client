@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:OpenFortiClient.App.ViewModels"
+             x:Class="OpenFortiClient.App.Views.ConnectPage"
+             x:DataType="vm:ConnectViewModel"
+             Title="Connect">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="20" MaximumWidthRequest="480" HorizontalOptions="Center">
+
+            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                <Image AutomationId="ResultLabLogo" Source="resultlab_lockup.png" HeightRequest="48" HorizontalOptions="Center"
+                       SemanticProperties.Description="ResultLab" />
+                <Label Text="OpenFortiClient" Style="{StaticResource Heading}" HorizontalOptions="Center" />
+                <Label AutomationId="ProductTagline" Text="A RESULTLAB OPEN-SOURCE PRODUCT" Style="{StaticResource Tagline}" HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="16">
+
+                    <Label AutomationId="StatusLabel" Text="{Binding StatusText}" Style="{StaticResource StatusText}" HorizontalOptions="Center" />
+
+                    <Grid ColumnDefinitions="100,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto"
+                          ColumnSpacing="12" RowSpacing="10" IsEnabled="{Binding ShowLoginFields}">
+
+                        <Label Text="VPN Name" Style="{StaticResource FieldLabel}" />
+                        <Picker x:Name="ProfilePicker" AutomationId="ProfilePicker" Grid.Column="1"
+                                ItemsSource="{Binding Profiles}"
+                                SelectedItem="{Binding SelectedProfile}" />
+                        <Button AutomationId="ManageConnectionsButton" Grid.Column="2" Text="≡" Style="{StaticResource SecondaryButton}"
+                                ToolTipProperties.Text="Add, edit or delete connections"
+                                Command="{Binding ManageConnectionsCommand}" />
+
+                        <Label Grid.Row="1" Text="Username" Style="{StaticResource FieldLabel}" />
+                        <Entry AutomationId="UsernameEntry" Grid.Row="1" Grid.Column="1" Text="{Binding Username}" />
+
+                        <Label Grid.Row="2" Text="Password" Style="{StaticResource FieldLabel}" />
+                        <Entry AutomationId="PasswordEntry" Grid.Row="2" Grid.Column="1" Text="{Binding Password}" IsPassword="True"
+                               ReturnCommand="{Binding ConnectCommand}" />
+
+                        <HorizontalStackLayout Grid.Row="3" Grid.Column="1" Spacing="6">
+                            <CheckBox AutomationId="SavePasswordCheckBox" IsChecked="{Binding SavePassword}" VerticalOptions="Center" />
+                            <Label Text="Save password in Keychain" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </Grid>
+
+                    <Label AutomationId="EmptyHintLabel" Text="No connections yet. Use ≡ to add one."
+                           Style="{StaticResource Muted}" HorizontalOptions="Center"
+                           IsVisible="{Binding ShowEmptyHint}" />
+
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource Primary}" />
+
+                    <Button AutomationId="ConnectButton" Text="Connect" Command="{Binding ConnectCommand}"
+                            IsVisible="{Binding ShowLoginFields}" HorizontalOptions="Center" WidthRequest="180" />
+                    <Button AutomationId="DisconnectButton" Text="{Binding DisconnectText}" Command="{Binding DisconnectCommand}"
+                            IsVisible="{Binding ShowDisconnect}" HorizontalOptions="Center" WidthRequest="180" />
+
+                    <Label AutomationId="ErrorLabel" Text="{Binding ErrorText}" Style="{StaticResource ErrorText}"
+                           IsVisible="{Binding HasError}" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:OpenFortiClient.App.ViewModels"
+             x:Class="OpenFortiClient.App.Views.SettingsPage"
+             x:DataType="vm:SettingsViewModel"
+             Title="Settings">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16" MaximumWidthRequest="720">
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="System" Style="{StaticResource SectionTitle}" />
+                    <HorizontalStackLayout Spacing="12">
+                        <Label Text="Back up or restore connections and settings" VerticalOptions="Center" />
+                        <Button Text="Backup" Command="{Binding BackupCommand}" />
+                        <Button Text="Restore" Command="{Binding RestoreCommand}" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="10">
+                    <Label Grid.ColumnSpan="2" Text="Logging" Style="{StaticResource SectionTitle}" />
+
+                    <Label Grid.Row="1" Text="Log level" VerticalOptions="Center" />
+                    <Picker Grid.Row="1" Grid.Column="1" ItemsSource="{Binding LogLevels}" SelectedItem="{Binding LogLevel}"
+                            HorizontalOptions="Start" WidthRequest="200" />
+
+                    <Label Grid.Row="2" Text="Log file" VerticalOptions="Center" />
+                    <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Spacing="12">
+                        <Button Text="Export logs" Command="{Binding ExportLogsCommand}" />
+                        <Button Text="Clear logs" Style="{StaticResource SecondaryButton}" Command="{Binding ClearLogsCommand}" />
+                    </HorizontalStackLayout>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Privileged helper" Style="{StaticResource SectionTitle}" />
+                    <Label Text="openfortivpn needs root to set up routes and DNS. The helper runs it for OpenFortiClient, and nothing else."
+                           Style="{StaticResource Muted}" />
+                    <Label AutomationId="HelperStatusLabel" Text="{Binding HelperStatusText}" />
+                    <HorizontalStackLayout Spacing="12">
+                        <Button AutomationId="HelperInstallButton" Text="Install" Command="{Binding InstallHelperCommand}" IsVisible="{Binding CanInstallHelper}" />
+                        <Button AutomationId="HelperOpenLoginItemsButton" Text="Open Login Items…" Command="{Binding OpenLoginItemsCommand}" IsVisible="{Binding HelperNeedsApproval}" />
+                        <Button AutomationId="HelperRefreshButton" Text="Check again" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshHelperCommand}" />
+                        <Button AutomationId="HelperRemoveButton" Text="Remove" Style="{StaticResource SecondaryButton}" Command="{Binding RemoveHelperCommand}" IsVisible="{Binding CanRemoveHelper}" />
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Spacing="12" IsVisible="{Binding IsDevelopmentBuild}">
+                        <Label Text="Use the helper in this development build (otherwise sudo)" VerticalOptions="Center" />
+                        <Switch AutomationId="UseHelperSwitch" IsToggled="{Binding UsePrivilegedHelper}" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="10">
+                    <Label Grid.ColumnSpan="2" Text="Notifications" Style="{StaticResource SectionTitle}" />
+
+                    <Label Grid.Row="1" Text="Show macOS notifications" VerticalOptions="Center"
+                           ToolTipProperties.Text="Connected, connection lost or failed, and switching to another gateway. Always listed on the Notifications page." />
+                    <Switch AutomationId="SystemNotificationsSwitch" Grid.Row="1" Grid.Column="1"
+                            IsToggled="{Binding ShowSystemNotifications}" HorizontalOptions="Start" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="10">
+                    <Label Grid.ColumnSpan="2" Text="VPN Options" Style="{StaticResource SectionTitle}" />
+
+                    <Label Grid.Row="1" Text="Warn about untrusted certificates" VerticalOptions="Center" />
+                    <Switch Grid.Row="1" Grid.Column="1" IsToggled="{Binding WarnInvalidServerCertificate}" HorizontalOptions="Start" />
+
+                    <Label Grid.Row="2" Text="Use the VPN's DNS servers" VerticalOptions="Center" />
+                    <Switch Grid.Row="2" Grid.Column="1" IsToggled="{Binding SetDns}" HorizontalOptions="Start" />
+
+                    <Label Grid.Row="3" Text="Use the VPN's routes" VerticalOptions="Center" />
+                    <Switch Grid.Row="3" Grid.Column="1" IsToggled="{Binding SetRoutes}" HorizontalOptions="Start" />
+
+                    <Label Grid.Row="4" Text="Gateway timeout (seconds)" VerticalOptions="Center" />
+                    <Entry Grid.Row="4" Grid.Column="1" Text="{Binding GatewayTimeoutSeconds}" Keyboard="Numeric"
+                           HorizontalOptions="Start" WidthRequest="100" />
+
+                    <Label Grid.Row="5" Text="openfortivpn path" VerticalOptions="Center" />
+                    <Entry Grid.Row="5" Grid.Column="1" Text="{Binding OpenFortiVpnPath}" />
+                </Grid>
+            </Border>
+
+            <Button AutomationId="SaveSettingsButton" Text="Save settings" HorizontalOptions="End" Command="{Binding SaveCommand}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

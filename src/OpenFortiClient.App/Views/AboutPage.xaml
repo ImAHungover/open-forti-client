@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:OpenFortiClient.App.ViewModels"
+             x:Class="OpenFortiClient.App.Views.AboutPage"
+             x:DataType="vm:AboutViewModel"
+             Title="About">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16" MaximumWidthRequest="640" HorizontalOptions="Center">
+
+            <HorizontalStackLayout Spacing="16">
+                <Image Source="resultlab_logo.png" HeightRequest="96" SemanticProperties.Description="ResultLab" />
+                <VerticalStackLayout Spacing="4" VerticalOptions="Center">
+                    <Label Text="OpenFortiClient" Style="{StaticResource Heading}" />
+                    <Label AutomationId="AboutVersion" Text="{Binding AppVersion, StringFormat='Version {0}'}" Style="{StaticResource Muted}" />
+                    <Label AutomationId="AboutProduct" Text="A ResultLab open-source product" Style="{StaticResource Tagline}" />
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="[01] Product" Style="{StaticResource SectionTitle}" />
+                    <Label Text="An open-source client for Fortinet SSL-VPN gateways on macOS, built by ResultLab." />
+                    <Label Text="{Binding OpenFortiVpnVersion, StringFormat='VPN engine: openfortivpn {0}'}" Style="{StaticResource Muted}" />
+                    <HorizontalStackLayout Spacing="12">
+                        <Button AutomationId="ResultLabProductsButton" Text="More from ResultLab" Command="{Binding OpenResultLabCommand}" />
+                        <Button Text="openfortivpn on GitHub" Style="{StaticResource SecondaryButton}" Command="{Binding OpenProjectCommand}" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="[02] License" Style="{StaticResource SectionTitle}" />
+                    <Label AutomationId="AboutLicense" Text="MIT License. Copyright © 2026 ResultLab." />
+                    <Label Text="Free to use, copy, modify and distribute, with the copyright and licence notice. Provided as is, without warranty."
+                           Style="{StaticResource Muted}" />
+                    <Button Text="Read the MIT License" Style="{StaticResource SecondaryButton}" HorizontalOptions="Start"
+                            Command="{Binding OpenLicenseCommand}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="[03] Third parties" Style="{StaticResource SectionTitle}" />
+                    <Label Text="openfortivpn is licensed under the GNU GPL v3; it is installed separately and runs as a separate program." />
+                    <Label Text="Inter and JetBrains Mono fonts: SIL Open Font License 1.1." />
+                    <Label Text="This project is not affiliated with or endorsed by Fortinet. FortiClient and FortiGate are trademarks of Fortinet, Inc."
+                           Style="{StaticResource Muted}" />
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

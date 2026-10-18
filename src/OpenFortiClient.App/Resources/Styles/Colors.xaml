@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- ResultLab brand (resultlab.io): dark surfaces, one cyan accent. Converted from the site's
+         oklch tokens. The app always uses the dark look, like the site (App.xaml.cs). -->
+    <Color x:Key="Background">#0B0D11</Color>
+    <Color x:Key="Surface">#14161A</Color>
+    <Color x:Key="Surface2">#1C1F24</Color>
+    <Color x:Key="Input">#25292F</Color>
+    <Color x:Key="Border">#2A2E34</Color>
+    <Color x:Key="Foreground">#F2F6F8</Color>
+    <Color x:Key="MutedForeground">#9299A1</Color>
+
+    <Color x:Key="Primary">#00B8D7</Color>
+    <Color x:Key="OnPrimary">#0B0D11</Color>
+    <Color x:Key="Danger">#EE343B</Color>
+    <Color x:Key="Warning">#FFB900</Color>
+    <Color x:Key="Success">#2FC48D</Color>
+
+    <!-- Names the code already uses (SeverityColorConverter); both themes map to the brand. -->
+    <Color x:Key="MutedLight">#9299A1</Color>
+    <Color x:Key="MutedDark">#9299A1</Color>
+
+</ResourceDictionary>

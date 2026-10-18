@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OpenFortiClient.App/OpenFortiClient.App.csproj" />
+    <Project Path="src/OpenFortiClient.Core/OpenFortiClient.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OpenFortiClient.Core.Tests/OpenFortiClient.Core.Tests.csproj" />
+    <Project Path="tests/OpenFortiClient.App.UiTests/OpenFortiClient.App.UiTests.csproj" />
+  </Folder>
+</Solution>
