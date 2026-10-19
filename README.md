@@ -74,7 +74,7 @@ You need macOS 14 or later, the .NET 10 SDK, openfortivpn, Xcode and the .NET MA
 dotnet test OpenFortiClient.Core.slnf                      # Core and tests, no Xcode needed
 ./scripts/install-sudoers-rule.sh                          # once: Debug builds start openfortivpn with sudo
 ./scripts/provision-signing.sh <TEAM_ID>                   # once, and every 7 days on a free team: signing for saved passwords
-dotnet build src/OpenFortiClient.App -f net10.0-maccatalyst -t:Run
+dotnet build src/OpenFortiClient.App -f net10.0-maccatalyst -t:Build -t:Run
 ./scripts/test-helper.sh                                   # the privileged helper's tests
 ./scripts/run-ui-tests.sh                                  # end-to-end UI tests (needs Appium, see the guide)
 ```

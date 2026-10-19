@@ -14,10 +14,12 @@ trap 'rm -rf "$DERIVED_DATA"' EXIT
 
 # Building the stub app with automatic signing makes Xcode register the bundle ID and this Mac,
 # create the certificate if needed, and download a profile that grants keychain-access-groups.
+# The destination must be this Mac, not generic/platform=macOS: only then does Xcode add this Mac
+# to the profile, and macOS refuses to launch the app on a Mac the profile does not list.
 xcodebuild -quiet build \
     -project "$ROOT/scripts/provisioning/Provision.xcodeproj" \
     -scheme Provision \
-    -destination 'generic/platform=macOS' \
+    -destination 'platform=macOS,arch=arm64' \
     -derivedDataPath "$DERIVED_DATA" \
     -allowProvisioningUpdates \
     DEVELOPMENT_TEAM="$TEAM_ID" \
@@ -26,6 +28,10 @@ xcodebuild -quiet build \
 IDENTITY="$(security find-identity -v -p codesigning | sed -n 's/.*"\(Apple Development: [^"]*\)".*/\1/p' | head -n 1)"
 if [ -z "$IDENTITY" ]; then
     echo "No Apple Development certificate found after provisioning." >&2
+    if security find-identity -p codesigning | grep -q "Apple Development"; then
+        echo "A certificate exists but is not valid. Usually the Apple WWDR G3 intermediate is missing:" >&2
+        echo "download https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer and open it to add it to the login keychain." >&2
+    fi
     exit 1
 fi
 
