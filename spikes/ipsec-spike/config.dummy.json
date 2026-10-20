@@ -1,0 +1,10 @@
+{
+  "server": "192.0.2.1",
+  "remoteIdentifier": "spike.invalid",
+  "authentication": "eap",
+  "username": "spike",
+  "encryption": "aes256",
+  "integrity": "sha256",
+  "dhGroup": 14,
+  "useInternalSubnet": true
+}

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Step 2b of docs/ipsec-spike.md: macOS's IKEv2 client with every setting the System Settings dialog hides.
+  Copy to a .mobileconfig outside the repository, replace each ${...} with the gateway admin's values, then
+  double-click it and install it in System Settings > General > Device Management.
+  The password is left out on purpose: macOS asks for it when connecting. Never commit a filled-in copy.
+  Allowed values: EncryptionAlgorithm AES-256, AES-256-GCM or ChaCha20Poly1305 (macOS 26 has no DES, 3DES or
+  SHA-1; AES-128 is deprecated); IntegrityAlgorithm SHA2-256, SHA2-384 or SHA2-512; DiffieHellmanGroup 14 to 21.
+-->
+<plist version="1.0">
+<dict>
+	<key>PayloadDisplayName</key>
+	<string>OpenFortiClient IPsec spike</string>
+	<key>PayloadIdentifier</key>
+	<string>io.github.openforticlient.ipsec-spike.profile</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>${UUID_1}</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>PayloadType</key>
+			<string>com.apple.vpn.managed</string>
+			<key>PayloadIdentifier</key>
+			<string>io.github.openforticlient.ipsec-spike.profile.vpn</string>
+			<key>PayloadUUID</key>
+			<string>${UUID_2}</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>UserDefinedName</key>
+			<string>FortiGate IKEv2 (spike)</string>
+			<key>VPNType</key>
+			<string>IKEv2</string>
+			<key>IKEv2</key>
+			<dict>
+				<key>RemoteAddress</key>
+				<string>${GATEWAY_HOST_OR_IP}</string>
+				<!-- The FortiGate's local ID (set local-id in the phase 1), or its certificate's name. -->
+				<key>RemoteIdentifier</key>
+				<string>${GATEWAY_LOCAL_ID}</string>
+				<!-- Only if the admin binds the tunnel to a peer ID; otherwise remove these two lines. -->
+				<key>LocalIdentifier</key>
+				<string>${PEER_ID}</string>
+				<!-- EAP with username and password. For a certificate login: Certificate, and remove the EAP keys. -->
+				<key>AuthenticationMethod</key>
+				<string>None</string>
+				<key>ExtendedAuthEnabled</key>
+				<integer>1</integer>
+				<key>AuthName</key>
+				<string>${USERNAME}</string>
+				<key>IKESecurityAssociationParameters</key>
+				<dict>
+					<key>EncryptionAlgorithm</key>
+					<string>AES-256</string>
+					<key>IntegrityAlgorithm</key>
+					<string>SHA2-256</string>
+					<key>DiffieHellmanGroup</key>
+					<integer>14</integer>
+					<key>LifeTimeInMinutes</key>
+					<integer>1440</integer>
+				</dict>
+				<key>ChildSecurityAssociationParameters</key>
+				<dict>
+					<key>EncryptionAlgorithm</key>
+					<string>AES-256</string>
+					<key>IntegrityAlgorithm</key>
+					<string>SHA2-256</string>
+					<key>DiffieHellmanGroup</key>
+					<integer>14</integer>
+					<key>LifeTimeInMinutes</key>
+					<integer>480</integer>
+				</dict>
+				<!-- Routes from the gateway's split-tunnel subnets (INTERNAL_IP4_SUBNET) instead of a default route. -->
+				<key>UseConfigurationAttributeInternalIPSubnet</key>
+				<integer>1</integer>
+				<key>DeadPeerDetectionRate</key>
+				<string>Medium</string>
+				<!-- Set to 1 if the phase 2 uses PFS. -->
+				<key>EnablePFS</key>
+				<integer>0</integer>
+				<key>DisableMOBIKE</key>
+				<integer>0</integer>
+				<!-- Optional: pin the gateway's certificate. -->
+				<key>ServerCertificateCommonName</key>
+				<string>${GATEWAY_CERT_CN}</string>
+				<key>ServerCertificateIssuerCommonName</key>
+				<string>${GATEWAY_CA_CN}</string>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -2,7 +2,17 @@
 
 What comes after version 1.0.0. The delivered phases are in the [README](../README.md#roadmap); going live (notarised DMG, Homebrew) is [release.md](release.md).
 
-Status words: **Done**; **TBC**, to be confirmed: wanted, but the need or the approach still has to be confirmed; **TBD**, to be decided: open, nothing decided yet.
+Status words: **Done**; **Next**: planned, in this order; **TBC**, to be confirmed: wanted, but the need or the approach still has to be confirmed; **TBD**, to be decided: open, nothing decided yet.
+
+## Next up
+
+**Why IPsec comes first.** openfortivpn speaks only Fortinet's SSL VPN tunnel mode, and FortiOS 7.6.3 removed tunnel mode on every FortiGate model in favour of IPsec (also over TCP 443); 7.6.0 and 7.6.1 had already removed it on smaller models. Each gateway upgraded past 7.6.3 stops working with OpenFortiClient until it has an IPsec engine.
+
+| # | Item | Status | What |
+|---|---|---|---|
+| 1 | **IPsec spike** | **Next** | One day, no app code: does macOS's built-in IKEv2 (or IKEv1/XAuth) client connect to a FortiGate, and does it go through another VPN such as L2TP, where FortiClient fails? Plan: [ipsec-spike.md](ipsec-spike.md) |
+| 2 | **Connect first** (chain a macOS VPN) | **Next** | A connection can name a VPN set up in System Settings (for example the company L2TP VPN). OpenFortiClient connects it first and waits until its route is up, then connects the gateway; on disconnect, optionally the other way round. Public `SCNetworkConnection` API (SystemConfiguration): start, stop and status of existing services. Small, and solves the setup in [vision.md](vision.md) without leaving the app |
+| 3 | **IPsec engine** | **Next**, if the spike says so | Most likely macOS's client through `NEVPNManager`, as a second engine behind `IVpnEngine`; strongSwan if the spike rules that out. The spike's decision table says which |
 
 ## Connection types
 
@@ -19,9 +29,9 @@ OpenFortiClient supports what openfortivpn supports: **Fortinet SSL-VPN** in tun
 | SSL-VPN, **realm** (`https://gateway/realm`) | **TBC** | openfortivpn `realm` option: one field in the connection editor, one key in the helper's allowlist | Small |
 | SSL-VPN through an **HTTP proxy** | **TBD** | openfortivpn has no proxy support; would need a tunnel such as `proxytunnel` or our own engine | |
 | SSL-VPN, **certificate from the Keychain or a smart card** (instead of PEM files) | **TBD** | openfortivpn reads PEM files only; needs PKCS#11 / Keychain support in the engine | Phase 5 question |
-| **IPsec VPN, IKEv2** | **TBD** | Not openfortivpn. Options: macOS's built-in IKEv2 through `NEVPNManager` (needs the Network Extension entitlement, so a paid account), or strongSwan as a second engine | FortiClient's "IPsec VPN" type |
-| **IPsec VPN, IKEv1 / XAuth** (FortiGate dial-up) | **TBD** | As IKEv2; macOS's built-in client covers IKEv1 with XAuth through `NEVPNManager` | Older setups |
-| **L2TP over IPsec** | **TBD** | macOS has it built in (System Settings), so low priority | Mentioned because the problem in [vision.md](vision.md) involves an L2TP VPN |
+| **IPsec VPN, IKEv2** | **Next** ([spike](ipsec-spike.md)) | Not openfortivpn. Options: macOS's built-in IKEv2 through `NEVPNManager` (Personal VPN entitlement; whether Developer ID allows it is one of the spike's questions), or strongSwan as a second engine. Open: IPsec over TCP 443, split tunnel with the native client | FortiClient's "IPsec VPN" type, and Fortinet's replacement for SSL VPN tunnel mode from FortiOS 7.6.3 |
+| **IPsec VPN, IKEv1 / XAuth** (FortiGate dial-up) | **Next** ([spike](ipsec-spike.md)) | As IKEv2; macOS's built-in client covers IKEv1 with XAuth (`NEVPNProtocolIPSec`) | Older setups; weaker than IKEv2 |
+| **L2TP over IPsec** as a connection type | **TBD**, unlikely | Old (IKEv1, pre-shared key, MS-CHAPv2), not offered by `NEVPNManager`, and built into macOS already. What the setup in [vision.md](vision.md) needs is ordering, not a new type: see *Connect first* in [Next up](#next-up) | |
 | **ZTNA / EMS** (FortiClient EMS, zero trust tags, compliance) | **TBD** | Needs Fortinet's EMS protocol; there is no open implementation | Out of scope unless that changes |
 | Our **own engine** (TLS plus PPP in .NET or Swift, Network Extension) | **TBD** | Phase 5 of [vision.md](vision.md): removes root and `pppd`; large and security-critical | Decide based on what openfortivpn cannot do |
 

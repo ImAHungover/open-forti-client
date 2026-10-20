@@ -494,3 +494,8 @@ scripts/provisioning/Provision.xcodeproj/xcuserdata/
 # Raw material from a real environment (client hostnames, IPs, user paths): kept locally, never published
 docs/raw/logs/
 docs/raw/wireframes/image/
+
+# IPsec spike (docs/ipsec-spike.md): filled-in gateway settings stay local
+spikes/ipsec-spike/*.mobileconfig
+spikes/ipsec-spike/config.*.json
+!spikes/ipsec-spike/config.dummy.json
