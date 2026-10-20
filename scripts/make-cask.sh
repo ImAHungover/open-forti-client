@@ -21,13 +21,13 @@ cask "openforticlient" do
   desc "Open-source client for Fortinet SSL-VPN gateways"
   homepage "https://github.com/ImAHungover/open-forti-client"
 
-  depends_on macos: ">= :sonoma"
   depends_on arch: :arm64
+  depends_on macos: :sonoma
 
   app "OpenFortiClient.app"
 
-  uninstall quit:      "io.github.openforticlient",
-            launchctl: "io.github.openforticlient.helper"
+  uninstall launchctl: "io.github.openforticlient.helper",
+            quit:      "io.github.openforticlient"
 
   zap trash: [
     "~/Library/Application Support/OpenFortiClient",

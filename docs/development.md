@@ -156,7 +156,7 @@ To update it, change the version and SHA-256 in the script (`brew info --json=v2
 |---|---|---|
 | [OpenFortiClient.Core.Tests](../tests/OpenFortiClient.Core.Tests/) | Engine state machine, output parsing, config files, stores | `dotnet test OpenFortiClient.Core.slnf` (seconds, no Xcode needed) |
 | [OpenFortiClient.Helper.Tests](../tests/OpenFortiClient.Helper.Tests/) | The helper's session logic: only the bundled openfortivpn, run from a checked private copy, allowed config keys, 0600 files and when they go, output, OTP, SIGTERM. And its signature check against signed, ad hoc, unsigned and altered binaries (needs `Signing.local.props`, otherwise skipped) | `./scripts/test-helper.sh` (seconds, no root) |
-| [OpenFortiClient.App.UiTests](../tests/OpenFortiClient.App.UiTests/) | The real app, end to end, driven through its UI | `./scripts/run-ui-tests.sh --quick` (11 tests, one per main flow, about 2 minutes) while working; `./scripts/run-ui-tests.sh` (all 46, about 9 minutes) before a release; `--release` runs against a trimmed Release build |
+| [OpenFortiClient.App.UiTests](../tests/OpenFortiClient.App.UiTests/) | The real app, end to end, driven through its UI | `./scripts/run-ui-tests.sh --quick` (12 tests, one per main flow, about 2 minutes) while working; `./scripts/run-ui-tests.sh` (all 47, about 9 minutes) before a release; `--release` runs against a trimmed Release build |
 
 ### End-to-end UI tests
 
