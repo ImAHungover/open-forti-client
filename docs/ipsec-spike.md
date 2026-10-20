@@ -1,6 +1,6 @@
 # IPsec spike: can macOS's own IPsec client replace openfortivpn?
 
-Status (2026-10-20): **in progress.** Part B done without a gateway (Q6 answered, Q5 answered from the SDK, a first Q3 finding); Part A waits for the gateway details. Owner: the maintainer.
+Status (2026-10-20): **parked.** Part B is done without a gateway (Q6 answered, Q5 answered from the SDK, a first Q3 finding). Part A is parked: the gateway this project was built for stays on SSL VPN for now (its admins have no plans to migrate), so there is no IPsec gateway to test against. Resume when a FortiGate with IPsec dial-up and a test account is available. Owner: the maintainer.
 
 ## Why
 
