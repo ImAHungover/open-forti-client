@@ -29,7 +29,7 @@ OpenFortiClient supports what openfortivpn supports: **Fortinet SSL-VPN** in tun
 
 | Improvement | Status | Notes |
 |---|---|---|
-| Notarised DMG and Homebrew cask | **In progress** | Phase 4b, [release.md](release.md): scripts ready, first release pending |
+| Notarised DMG and Homebrew cask | **Done** (2026-10-20) | Phase 4b, [release.md](release.md): v1.0.0 on GitHub Releases and in `ImAHungover/homebrew-tap` |
 | openfortivpn bundled in the app | **Done** (2026-10-19) | Built from pinned sources with a static OpenSSL 3.5 LTS; the helper runs only a signature-checked copy |
 | Intel Macs (universal build) | **TBC** | Build the Swift parts and the bundled openfortivpn for `x86_64` too, and `lipo` them |
 | Start at login (`SMAppService.mainApp`) | **TBC** | Left out of phase 3 on purpose; pairs with auto-connect |

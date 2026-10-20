@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 (unreleased)
+## 1.0.0 (2026-10-20)
 
 The first public release of OpenFortiClient, a ResultLab open-source client for Fortinet SSL-VPN gateways on macOS (Apple Silicon, macOS 14 or later).
 

@@ -134,9 +134,9 @@ docs/
 
 ## Project status
 
-As of 2026-10-19: **phases 1 to 4 (free tier) are done; this is version 1.0.0.** The Mac app connects to a real FortiGate through openfortivpn, routed through the company L2TP VPN as intended. Connections, saved passwords, several gateways with failover, the certificate prompt, notifications, automatic reconnect ("always up"), auto-connect and the menu bar icon all work and are covered by unit tests and end-to-end UI tests.
+As of 2026-10-20: **version 1.0.0 is released** ([download](https://github.com/ImAHungover/open-forti-client/releases/tag/v1.0.0), or `brew install --cask imahungover/tap/openforticlient`). The Mac app connects to a real FortiGate through openfortivpn, routed through the company L2TP VPN as intended. Connections, saved passwords, several gateways with failover, the certificate prompt, notifications, automatic reconnect ("always up"), auto-connect and the menu bar icon all work and are covered by unit tests and end-to-end UI tests.
 
-Phase 4b, the public release, is in progress: openfortivpn is built from pinned sources and bundled, the helper runs only that signed copy, release builds use the hardened runtime, and the notarisation, cask and CI scripts are ready. What is left is the Developer ID signing on the paid account and the first published release ([docs/release.md](docs/release.md)).
+Phase 4b, the public release, is done: the app is signed with Developer ID and notarised, bundles openfortivpn built from pinned sources, and the helper runs only that signed copy. CI runs the Core and helper tests on every push. How to build the next release: [docs/release.md](docs/release.md).
 
 ## Roadmap
 
@@ -147,7 +147,7 @@ Phase 4b, the public release, is in progress: openfortivpn is built from pinned 
 | 2. Daily driver | Profile management, Keychain, several gateways, certificate trust prompt, notifications | ✅ Done (2026-10-17), covered by unit and end-to-end tests |
 | 3. Comfort | Menu bar icon, auto-connect, reconnect on network change, backup and restore | ✅ Done (2026-10-17): always up with backoff and retry on network change, auto-connect at start, menu bar icon (the app keeps running when its window closes), backup and restore. Start at login is left for later |
 | 4. Polish and release (free tier) | `SMAppService` privileged helper, client private key in the Keychain, release build, install script, licence | ✅ Done (2026-10-18). Release builds use the helper; the sudoers rule is for development builds only. Version 1.0.0, MIT |
-| 4b. Public release | Developer ID signing and notarisation, Homebrew cask, GitHub repository and releases, a verified openfortivpn inside the app | In progress: bundled openfortivpn, hardened runtime, release scripts and CI done; first notarised release pending. Runbook: [docs/release.md](docs/release.md) |
+| 4b. Public release | Developer ID signing and notarisation, Homebrew cask, GitHub repository and releases, a verified openfortivpn inside the app | ✅ Done (2026-10-20): v1.0.0 notarised on GitHub Releases and in the `imahungover/tap` cask. Runbook: [docs/release.md](docs/release.md) |
 | Later | More connection types (SAML, IPsec, …) and other improvements | TBC/TBD: [docs/roadmap.md](docs/roadmap.md) |
 | 5. Decide on the engine | Keep openfortivpn, or build our own implementation | Not started (after phase 3) |
 
