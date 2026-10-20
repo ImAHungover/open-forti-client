@@ -22,7 +22,10 @@ public sealed record AppSettings
     /// </summary>
     public bool WarnInvalidServerCertificate { get; set; } = true;
 
-    /// <summary>Path to the openfortivpn binary (Homebrew on Apple Silicon by default).</summary>
+    /// <summary>
+    /// Path to the openfortivpn that development builds run with sudo (Homebrew on Apple Silicon by default).
+    /// The privileged helper ignores it and runs the openfortivpn bundled in the app.
+    /// </summary>
     public string OpenFortiVpnPath { get; set; } = "/opt/homebrew/bin/openfortivpn";
 
     /// <summary>How long to wait for a gateway before trying the next one.</summary>

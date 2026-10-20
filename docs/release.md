@@ -1,109 +1,149 @@
 # Release (phase 4b: going live)
 
-How to publish OpenFortiClient officially: a **signed and notarised DMG** that anyone can download and open without warnings, and a **Homebrew cask** (`brew install --cask openforticlient`). This is the last phase of the roadmap ([README](../README.md#roadmap)). Version 1.0.0 today is a local build only: it is signed with a free Personal Team, is not notarised, and its signing profile expires after 7 days.
+How to publish OpenFortiClient: a **signed and notarised DMG** on GitHub Releases that anyone can download and open without warnings, and a **Homebrew cask** (`brew install --cask imahungover/tap/openforticlient`).
 
-Status: **not started**. Items marked **TBD** are decisions or values that do not exist yet.
+Status (2026-10-20): **in progress.**
 
-## Why this is a separate phase
+| Part | State |
+|---|---|
+| openfortivpn bundled, built from pinned sources, run only after a signature check | Done |
+| Hardened runtime and secure timestamps in signed release builds | Done, and the app starts under it |
+| DMG with `diskutil`, signed when built with Developer ID | Done (`scripts/build-release.sh`) |
+| Notarisation and stapling | Script ready (`scripts/notarize.sh`); first submission of 1.0.0 running |
+| Homebrew cask | Generator ready (`scripts/make-cask.sh`); tap repository not created yet |
+| CI | Core and helper tests on every push (`.github/workflows/ci.yml`) |
+| Developer ID certificate, profile, notary credentials | Done on the maintainer's MacBook Pro (team `PV53L7D44Q`); a 1.0.0 DMG is built and signed |
+| First public release (v1.0.0) | **To do** |
 
-| Need | Free Personal Team (today) | Paid Apple Developer Program |
+## Free team and paid account
+
+| Need | Free Personal Team | Paid Apple Developer Program |
 |---|---|---|
 | Signing identity | Apple Development (local testing only) | **Developer ID Application** (distribution outside the App Store) |
 | Notarisation (`notarytool`) | Not available | Available: Gatekeeper opens the app without warnings |
 | Provisioning profile for the Keychain group | 7 days, this Mac only | Developer ID profile, valid for years, any Mac |
 | Privileged helper (`SMAppService`) on other Macs | Only on the Mac that built it | Works on any Mac |
-| Homebrew cask | Not accepted unsigned or unnotarised (official tap); a private tap would still show Gatekeeper warnings | Accepted |
+| Homebrew cask | A Gatekeeper warning on every install | Installs cleanly |
 
-The paid membership costs 99 USD a year, and the account holder must be the publisher: ResultLab (**TBD**: the ResultLab Apple Developer account and team ID).
+The release is published under the maintainer's individual paid account; the app stays a ResultLab product in its name, look and licence. The Developer ID certificate shows the account holder's name.
 
-## Prerequisites (one time)
+## One-time setup
 
-| What | How | Owner |
-|---|---|---|
-| Apple Developer Program membership for ResultLab | developer.apple.com/programs, organisation enrolment (needs a D-U-N-S number) | **TBD** |
-| Developer ID Application certificate | Xcode → Settings → Accounts → Manage Certificates → + → Developer ID Application. Back it up as a `.p12` | **TBD** |
-| App ID `io.github.openforticlient` with the Keychain Sharing capability | developer.apple.com → Identifiers. Consider a ResultLab bundle ID instead (for example `io.resultlab.openforticlient`, **TBC**); changing it later loses saved passwords and the helper registration | **TBD** |
-| Developer ID provisioning profile for that App ID | developer.apple.com → Profiles → Developer ID. It grants `keychain-access-groups` for distribution | **TBD** |
-| Notarisation credentials in the keychain | `xcrun notarytool store-credentials openforticlient-notary --apple-id <id> --team-id <TEAM> --password <app-specific password>` (or an App Store Connect API key) | **TBD** |
-| Public GitHub repository for the source and releases | for example `github.com/resultlab/open-forti-client` (**TBD**) | **TBD** |
-| Homebrew tap repository | `github.com/resultlab/homebrew-tap` (**TBD**); later, optionally, the official `homebrew/cask` | **TBD** |
+Done once, on the first Mac that builds releases. For another Mac, see [Another Mac](#another-mac). Only the account holder can create a Developer ID certificate.
 
-## Changes to make in the code (once)
-
-1. **Signing for distribution.** In `src/OpenFortiClient.App/Signing.local.props` (local) or as CI secrets:
-   ```xml
-   <CodesignKey>Developer ID Application: ResultLab (TEAMID)</CodesignKey>
-   <CodesignProvision>OpenFortiClient Developer ID</CodesignProvision>
-   <DevelopmentTeam>TEAMID</DevelopmentTeam>
-   <UseHardenedRuntime>true</UseHardenedRuntime>
-   ```
-   The helper is already signed with hardened runtime (`BuildHelper` target). Notarisation also needs a secure timestamp: change its `codesign --timestamp=none` to `--timestamp` for release builds.
-2. **Hardened runtime for the app.** Notarisation requires it. Check that .NET's runtime still starts under it; it usually needs `com.apple.security.cs.allow-jit` in `Entitlements.Signed.plist`. Test this before the first submission.
-3. **DMG creation.** `hdiutil create` still works but is deprecated. Move `scripts/build-release.sh` to `diskutil image create` (or `create-dmg` for a background image and an icon layout). Sign the DMG itself: `codesign --sign "Developer ID Application: …" --timestamp OpenFortiClient-x.y.z.dmg`.
-4. **Notarise and staple** (new script, for example `scripts/notarize.sh`):
+1. **Add the paid account to Xcode:** Xcode → Settings → Accounts → +. If the Apple ID is already there, remove it (–) and add it again so Xcode reloads the team. Quit Xcode, then note the team ID:
    ```sh
-   xcrun notarytool submit artifacts/release/OpenFortiClient-$VERSION.dmg \
-       --keychain-profile openforticlient-notary --wait
-   xcrun stapler staple artifacts/release/OpenFortiClient-$VERSION.dmg
-   xcrun stapler validate artifacts/release/OpenFortiClient-$VERSION.dmg
-   spctl --assess --type open --context context:primary-signature -vv artifacts/release/OpenFortiClient-$VERSION.dmg
+   defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier
    ```
-   If it is rejected, `xcrun notarytool log <submission-id> --keychain-profile openforticlient-notary` lists every problem (unsigned binary, missing timestamp, missing hardened runtime).
-5. **Universal build (optional, TBC).** Release builds are Apple Silicon only. For Intel Macs, build the Swift parts for `x86_64` too (`lipo` both), and drop `-r maccatalyst-arm64` from the publish.
-6. **Bundle a verified openfortivpn (recommended, TBC).** This removes the Homebrew dependency and closes the documented risk that the Homebrew binary is writable by the admin user ([architecture.md](architecture.md#risks)). It means building openfortivpn and its OpenSSL from source in CI, signing them with the Developer ID, and pointing the helper's allowlist at the bundled path only. openfortivpn is GPLv3: shipping its binary means also offering its exact source (a link to the tagged source and the build script in the release) and including its licence. The app's own code stays MIT, because it runs openfortivpn as a separate program.
+   An individual membership bought with the Apple ID of a free Personal Team upgrades that team in place: the team ID stays the same, now with `isFreeProvisioningTeam = 0`. Then the bundle ID is already registered to it and step 3 is done.
+2. **Developer ID Application certificate:** Xcode → Settings → Accounts → the paid team → Manage Certificates → + → *Developer ID Application*. Xcode creates the private key in the login keychain. Back both up as a `.p12` (below) and keep it in a password manager: a lost private key means a new certificate, and Apple allows only a few Developer ID certificates per account.
+3. **App ID** (skip if the bundle ID is already registered to the team, as an `XC io github openforticlient` identifier): developer.apple.com → Certificates, Identifiers & Profiles → Identifiers → + → App IDs → App, bundle ID `io.github.openforticlient` (explicit). A bundle ID belongs to one team only: if another team holds it, the registration fails. See [Troubleshooting](#troubleshooting).
+4. **Developer ID provisioning profile:** Profiles → + → *Developer ID* → Profile Type **Mac** (not *Mac Catalyst*, which is for `maccatalyst.` App IDs of iPad apps) → the App ID above → the Developer ID certificate → name it `OpenFortiClient Developer ID` → Generate → Download. Double-clicking it does not always install it; copy it in by its UUID instead:
+   ```sh
+   f=~/Downloads/OpenFortiClient_Developer_ID.provisionprofile
+   uuid=$(security cms -D -i "$f" | plutil -extract UUID raw -)
+   cp "$f" ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/"$uuid".provisionprofile
+   ```
+5. **Signing for the build:**
+   ```sh
+   ./scripts/provision-signing.sh <TEAM_ID> --developer-id
+   ```
+   It finds the certificate and the profile and writes `src/OpenFortiClient.App/Signing.local.props`. `CodesignKey` there is the certificate's SHA-1 hash, not its name: `codesign` cannot find an identity by a name with non-ASCII characters.
+6. **Notary credentials:** create an app-specific password at account.apple.com → Sign-In and Security → App-Specific Passwords, then store it in the keychain (the command asks for it):
+   ```sh
+   xcrun notarytool store-credentials openforticlient-notary --apple-id <apple-id> --team-id <TEAM_ID>
+   ```
+   For CI, an App Store Connect API key works instead: `scripts/notarize.sh` uses it when `NOTARY_KEY`, `NOTARY_KEY_ID` and `NOTARY_ISSUER` are set.
+7. **Homebrew tap:** create the public repository `github.com/ImAHungover/homebrew-tap` with a `Casks/` folder (`gh repo create ImAHungover/homebrew-tap --public`).
+
+**Back up the certificate (`.p12`).** Keychain Access is hidden from macOS 26 on; open it with `open "/System/Library/CoreServices/Applications/Keychain Access.app"`. If its list stays empty, choose View → Show Sidebar and select the **login** keychain. Under *My Certificates*, right-click *Developer ID Application: … (TEAM_ID)* (it must have a private key under it) → Export → *Personal Information Exchange (.p12)*. Or from the command line, which exports all signing identities with their keys and asks for a password in a dialog:
+```sh
+security export -k ~/Library/Keychains/login.keychain-db -t identities -f pkcs12 -o ~/Desktop/openforticlient-signing.p12
+```
+
+**Your own Mac, if the team ID changed.** Only when the paid team has a different team ID than the free team you built with before: remove the old helper first (Settings → Privileged helper → Remove, in the old app), install the new build, install and approve the helper again, and enter saved passwords and client keys once more. The Keychain items belong to the old team's group and the new app cannot read them. With an upgraded team (same ID) none of this is needed.
+
+## Another Mac
+
+A second Mac that builds releases uses the **same** certificate, profile and team; it does not create new ones. To set it up:
+
+1. **Tools:** Xcode (the version in [development.md](development.md)), the .NET 10 SDK and the MAUI workload, and `brew install autoconf automake pkgconf` for the bundled openfortivpn. Clone the repository.
+2. **Xcode account:** Xcode → Settings → Accounts → + → the same Apple ID. The paid team appears with the same team ID.
+3. **Certificate:** copy the `.p12` from the password manager and import it into the login keychain, by double-clicking it or with:
+   ```sh
+   security import openforticlient-signing.p12 -k ~/Library/Keychains/login.keychain-db -T /usr/bin/codesign
+   ```
+   Check that `security find-identity -v -p codesigning` lists *Developer ID Application: … (TEAM_ID)*. Do not create a new Developer ID certificate in Xcode on this Mac: the profile names one certificate, and a new one would need a new profile.
+4. **Profile:** download *OpenFortiClient Developer ID* again from developer.apple.com → Profiles (or copy the file) and install it by its UUID, as in step 4 above.
+5. **Signing:** `./scripts/provision-signing.sh <TEAM_ID> --developer-id`.
+6. **Notary credentials:** they live in this Mac's keychain, so run `xcrun notarytool store-credentials openforticlient-notary …` here too. A new app-specific password per Mac makes it possible to revoke one Mac alone.
+7. **Check:** `./scripts/build-release.sh`, then `./scripts/notarize.sh`. The first `codesign` may ask for the login keychain password to use the imported key; choose *Always Allow*.
+
+A Mac that only **runs** the app needs none of this: the notarised DMG (or the cask) installs on any Mac. For **development** builds on that Mac, `./scripts/provision-signing.sh <TEAM_ID>` creates its own Apple Development certificate and profile, as in [development.md](development.md); switch back with `--developer-id` before building a release.
 
 ## Release checklist (each version)
 
-1. Update `ApplicationDisplayVersion` and `ApplicationVersion` in `src/OpenFortiClient.App/OpenFortiClient.App.csproj`, and note the changes in a `CHANGELOG.md` (**TBD**: create it at the first public release).
+1. Set `ApplicationDisplayVersion` (and raise `ApplicationVersion`) in `src/OpenFortiClient.App/OpenFortiClient.App.csproj`, and add the changes to [CHANGELOG.md](../CHANGELOG.md).
 2. Run all tests: `dotnet test OpenFortiClient.Core.slnf`, `./scripts/test-helper.sh`, `./scripts/run-ui-tests.sh` and `./scripts/run-ui-tests.sh --release`.
-3. Run `./scripts/build-release.sh` with the Developer ID signing, then `scripts/notarize.sh`.
-4. On a **second, clean Mac** (or a fresh user account): download the DMG from a browser (so it gets quarantined), open it, drag the app to Applications, start it, install and approve the helper, and connect. Gatekeeper must not warn.
-5. Tag the source (`git tag v1.0.0`) and create a GitHub release with the DMG, its SHA-256 (`shasum -a 256`) and the changelog.
-6. Update the Homebrew cask (below) with the new version and SHA-256, and test it: `brew install --cask resultlab/tap/openforticlient`.
+3. Build, notarise and write the cask:
+   ```sh
+   ./scripts/build-release.sh    # signed DMG, the openfortivpn and OpenSSL sources, SHA256SUMS
+   ./scripts/notarize.sh         # notarise, staple, check with spctl; updates SHA256SUMS
+   ./scripts/make-cask.sh        # artifacts/release/openforticlient.rb
+   ```
+4. On a **second Mac** (or a new user account): download the DMG with a browser, so it is quarantined; open it, drag the app to Applications, start it, install and approve the helper, and connect. Gatekeeper must not warn.
+5. Tag and publish. The release must carry the source archives next to the DMG (the GPL requires the sources to be offered with the binary):
+   ```sh
+   git tag v$VERSION && git push origin v$VERSION
+   gh release create v$VERSION --title "OpenFortiClient $VERSION" --notes-file <changelog excerpt> \
+       artifacts/release/OpenFortiClient-$VERSION.dmg artifacts/release/*.tar.gz artifacts/release/SHA256SUMS
+   ```
+6. Copy `artifacts/release/openforticlient.rb` to `Casks/openforticlient.rb` in the tap, commit and push. Then test it: `brew install --cask imahungover/tap/openforticlient`, and `brew uninstall --zap --cask openforticlient` (which must also remove the helper).
+
+## What the release contains
+
+| File | What |
+|---|---|
+| `OpenFortiClient-<version>.dmg` | The app (signed with Developer ID, hardened runtime, notarised and stapled), a link to Applications, `LICENSE`, `THIRD-PARTY-NOTICES.md` and `install.sh` |
+| `openfortivpn-<version>.tar.gz`, `openssl-<version>.tar.gz` | The exact sources of the bundled openfortivpn and OpenSSL, as downloaded and checksummed by `scripts/build-openfortivpn.sh` |
+| `SHA256SUMS` | Checksums of all of the above |
+
+Inside the app, every executable is signed by the same team with the hardened runtime: the app, `libOFCNative.dylib`, the helper (`io.github.openforticlient.helper`) and openfortivpn (`io.github.openforticlient.openfortivpn`). The helper runs openfortivpn only after checking that signature.
 
 ## Homebrew cask
 
-The first home is ResultLab's own tap (`resultlab/homebrew-tap`, **TBD**). A cask for `homebrew/cask` can follow once the project meets its notability rules. The cask installs the notarised DMG, requires openfortivpn (unless it is bundled, step 6 above), and removes the helper on uninstall:
+`scripts/make-cask.sh` writes the cask from the notarised DMG's version and SHA-256. It installs the app, needs Apple Silicon and macOS 14, stops the helper on uninstall, and with `--zap` removes settings, connections, logs and preferences. Saved passwords stay in the Keychain. The cask has no openfortivpn dependency, because the app bundles its own.
 
-```ruby
-cask "openforticlient" do
-  version "1.0.0"
-  sha256 "TBD"   # shasum -a 256 OpenFortiClient-1.0.0.dmg
+The tap is `ImAHungover/homebrew-tap`. The official `homebrew/cask` can follow once the project meets Homebrew's notability rules (stars, forks, age).
 
-  url "https://github.com/resultlab/open-forti-client/releases/download/v#{version}/OpenFortiClient-#{version}.dmg"   # TBD repository
-  name "OpenFortiClient"
-  desc "Open-source client for Fortinet SSL-VPN gateways, a ResultLab product"
-  homepage "https://resultlab.io/products"
-
-  depends_on macos: ">= :sonoma"
-  depends_on arch: :arm64
-  depends_on formula: "openfortivpn"
-
-  app "OpenFortiClient.app"
-
-  uninstall quit:      "io.github.openforticlient",
-            launchctl: "io.github.openforticlient.helper"
-
-  zap trash: [
-    "~/Library/Application Support/OpenFortiClient",
-    "~/Library/Logs/OpenFortiClient",
-  ]
-end
-```
-
-After installing, the user still opens the app once and approves the helper under System Settings → General → Login Items. macOS does not allow an installer to do that for them.
+After installing, the user still opens the app once and approves the helper under System Settings → General → Login Items. macOS does not let an installer do that for them. The cask prints this as a caveat.
 
 ## Automating it (TBC)
 
-A GitHub Actions workflow on a `macos` runner, started by a version tag, can do the whole checklist:
-1. Install Xcode, .NET 10 and the MAUI workload.
-2. Import the Developer ID certificate and the provisioning profile from encrypted secrets into a temporary keychain.
-3. Run the Core and helper tests (UI tests need a logged-in session with Accessibility permission, so they stay a manual step, or need a self-hosted runner).
-4. Run `build-release.sh` and `notarize.sh`, upload the DMG to the release, and update the tap with the new SHA-256.
+A GitHub Actions workflow on a `macos` runner, started by a version tag, could do steps 2 to 6:
+1. Install Xcode, .NET 10 and the MAUI workload. The Mac Catalyst SDK needs a matching Xcode (27 today), which the hosted runners must offer.
+2. Import the Developer ID certificate (`.p12`) and the profile from encrypted secrets into a temporary keychain.
+3. Run the Core and helper tests. UI tests need a logged-in session with Accessibility permission, so they stay manual or need a self-hosted runner.
+4. Run `build-release.sh`, `notarize.sh` (with an App Store Connect API key) and `make-cask.sh`, create the release, and push the cask to the tap.
+
+Until then, releases are built on the maintainer's Mac with the checklist above.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Registering `io.github.openforticlient` in the paid team fails ("not available") | The free Personal Team still holds it. A Personal Team has no portal access to delete it; such IDs may be released some time after their last profile expires, otherwise Apple Developer Support can release it. Changing the bundle ID instead means a new ID in the csproj, the helper plist, the code signing requirements and the scripts |
+| Xcode lists only the Personal Team after paying | The membership is not active yet (up to 48 hours; Apple sends a welcome email), or Xcode has not reloaded the account: remove the Apple ID in Xcode → Settings → Accounts, add it again and quit Xcode |
+| `provision-signing.sh --developer-id`: "No valid Developer ID provisioning profile" | The profile is not installed: double-clicking the download does not always copy it. Install it by its UUID (one-time setup, step 4) |
+| `codesign`: "…: no identity found" for a name with accents | `codesign` cannot match non-ASCII names. Run `provision-signing.sh` again: it writes the certificate's SHA-1 hash as `CodesignKey` |
+| `notarize.sh` reports *Invalid* | It prints Apple's log. Typical causes: a binary without hardened runtime or secure timestamp (a build signed before `UseHardenedRuntime` was on: rebuild with `build-release.sh`, which starts clean), or an unsigned file in the bundle |
+| `spctl` says *rejected* after stapling | The DMG was changed after notarisation, or is not signed with Developer ID. Build and notarise again |
+| The installed app does not launch on another Mac | Its profile is not a Developer ID profile, so it is only valid on the Macs in it. Check with `security cms -D -i OpenFortiClient.app/Contents/embedded.provisionprofile` (`ProvisionsAllDevices` must be true) |
+| The helper refuses: "failed its signature check" | The bundled openfortivpn was changed, or signed by another team than the helper's. Reinstall from the DMG |
 
 ## Done when
 
 - A DMG from the GitHub release opens on a clean Mac without any Gatekeeper warning.
 - `spctl` accepts it, and `stapler validate` passes.
-- `brew install --cask resultlab/tap/openforticlient` installs it and `brew uninstall --zap` removes it with the helper.
-- The README's "Install" section points to the download and the cask instead of building it yourself.
+- `brew install --cask imahungover/tap/openforticlient` installs it, and `brew uninstall --zap --cask openforticlient` removes it with the helper.
+- A connection through the helper with the bundled openfortivpn works on that Mac.

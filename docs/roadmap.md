@@ -23,15 +23,15 @@ OpenFortiClient supports what openfortivpn supports: **Fortinet SSL-VPN** in tun
 | **IPsec VPN, IKEv1 / XAuth** (FortiGate dial-up) | **TBD** | As IKEv2; macOS's built-in client covers IKEv1 with XAuth through `NEVPNManager` | Older setups |
 | **L2TP over IPsec** | **TBD** | macOS has it built in (System Settings), so low priority | Mentioned because the problem in [vision.md](vision.md) involves an L2TP VPN |
 | **ZTNA / EMS** (FortiClient EMS, zero trust tags, compliance) | **TBD** | Needs Fortinet's EMS protocol; there is no open implementation | Out of scope unless that changes |
-| Our **own engine** (TLS plus PPP in .NET or Swift, Network Extension) | **TBD** | Phase 5 of [vision.md](vision.md): removes root, `pppd` and the Homebrew dependency; large and security-critical | Decide based on what openfortivpn cannot do |
+| Our **own engine** (TLS plus PPP in .NET or Swift, Network Extension) | **TBD** | Phase 5 of [vision.md](vision.md): removes root and `pppd`; large and security-critical | Decide based on what openfortivpn cannot do |
 
 ## Other improvements
 
 | Improvement | Status | Notes |
 |---|---|---|
-| Notarised DMG and Homebrew cask | **TBD** | Phase 4b, [release.md](release.md); needs a paid Apple Developer account |
-| openfortivpn bundled in the app | **TBC** | Part of phase 4b; removes the Homebrew dependency and the "binary writable by the admin user" risk |
-| Intel Macs (universal build) | **TBC** | Build the Swift parts for `x86_64` too |
+| Notarised DMG and Homebrew cask | **In progress** | Phase 4b, [release.md](release.md): scripts ready, first release pending |
+| openfortivpn bundled in the app | **Done** (2026-10-19) | Built from pinned sources with a static OpenSSL 3.5 LTS; the helper runs only a signature-checked copy |
+| Intel Macs (universal build) | **TBC** | Build the Swift parts and the bundled openfortivpn for `x86_64` too, and `lipo` them |
 | Start at login (`SMAppService.mainApp`) | **TBC** | Left out of phase 3 on purpose; pairs with auto-connect |
 | Native Mac look ("Optimize for Mac" instead of the scaled iPad look) | **TBD** | Larger text and Mac controls; changes every page's layout |
 | Light theme | **TBD** | The ResultLab look is dark only today |

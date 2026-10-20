@@ -172,7 +172,9 @@ public sealed class OpenFortiVpnEngine(IPrivilegedLauncher launcher, OpenFortiVp
         {
             Fail(new VpnError(
                 VpnErrorKind.EngineNotFound,
-                $"openfortivpn was not found at {opts.ExecutablePath}. Install it with: brew install openfortivpn"));
+                opts.ExecutablePath.StartsWith("/opt/homebrew/", StringComparison.Ordinal) || opts.ExecutablePath.StartsWith("/usr/local/", StringComparison.Ordinal)
+                    ? $"openfortivpn was not found at {opts.ExecutablePath}. Install it with: brew install openfortivpn"
+                    : $"openfortivpn was not found at {opts.ExecutablePath}. Reinstall OpenFortiClient."));
             return;
         }
 

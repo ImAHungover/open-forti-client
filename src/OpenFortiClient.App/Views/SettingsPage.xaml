@@ -83,8 +83,9 @@
                     <Entry Grid.Row="4" Grid.Column="1" Text="{Binding GatewayTimeoutSeconds}" Keyboard="Numeric"
                            HorizontalOptions="Start" WidthRequest="100" />
 
-                    <Label Grid.Row="5" Text="openfortivpn path" VerticalOptions="Center" />
-                    <Entry Grid.Row="5" Grid.Column="1" Text="{Binding OpenFortiVpnPath}" />
+                    <!-- Only sudo uses it; the helper runs the openfortivpn bundled in the app. -->
+                    <Label Grid.Row="5" Text="openfortivpn path (sudo)" VerticalOptions="Center" IsVisible="{Binding IsDevelopmentBuild}" />
+                    <Entry Grid.Row="5" Grid.Column="1" Text="{Binding OpenFortiVpnPath}" IsVisible="{Binding IsDevelopmentBuild}" />
                 </Grid>
             </Border>
 

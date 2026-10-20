@@ -6,10 +6,24 @@ import Foundation
 
 let runtimeDirectory = URL(fileURLWithPath: "/var/run/openforticlient", isDirectory: true)
 
+/// The openfortivpn next to this helper, in the app's Contents/MacOS. Bundle.main would name the app's
+/// main executable instead, so the path comes from the kernel.
+let bundledOpenFortiVpn: URL = {
+    var buffer = [CChar](repeating: 0, count: Int(4 * MAXPATHLEN))
+    guard proc_pidpath(getpid(), &buffer, UInt32(buffer.count)) > 0 else {
+        FileHandle.standardError.write(Data("OpenFortiClientHelper: cannot find its own path.\n".utf8))
+        exit(1)
+    }
+    return URL(fileURLWithPath: String(cString: buffer)).deletingLastPathComponent().appendingPathComponent("openfortivpn")
+}()
+
 /// One app connection, one openfortivpn.
 final class HelperService: NSObject, OFCHelperProtocol {
     private weak var connection: NSXPCConnection?
-    private let session = OpenFortiVpnSession(runtimeDirectory: runtimeDirectory)
+    private let session = OpenFortiVpnSession(
+        runtimeDirectory: runtimeDirectory,
+        bundled: bundledOpenFortiVpn,
+        verify: { try CodeSignature.verifyOpenFortiVpn($0, team: helperTeamIdentifier) })
 
     init(connection: NSXPCConnection) {
         self.connection = connection

@@ -138,7 +138,9 @@ openfortivpn must run as root because it starts `pppd` and changes routes and DN
 | Build | Launcher | How |
 |---|---|---|
 | Release | `HelperLauncher` | The **privileged helper**, a launch daemon the app registers with `SMAppService`. The user approves it once in System Settings → General → Login Items |
-| Debug | `SudoLauncher` | `sudo -n openfortivpn …` with a NOPASSWD sudoers rule (`scripts/install-sudoers-rule.sh`). Settings → "Use the helper in this development build" switches to the helper |
+| Debug | `SudoLauncher` | `sudo -n openfortivpn …` with a NOPASSWD sudoers rule (`scripts/install-sudoers-rule.sh`), using Homebrew's openfortivpn (Settings → "openfortivpn path (sudo)"). Settings → "Use the helper in this development build" switches to the helper |
+
+**The bundled openfortivpn.** The app ships its own openfortivpn as `Contents/MacOS/openfortivpn`. [scripts/build-openfortivpn.sh](../scripts/build-openfortivpn.sh) builds it once from pinned, checksummed sources: OpenSSL 3.5 LTS, linked statically, and openfortivpn on top of it, so it needs nothing outside macOS. Its CA bundle is macOS's `/etc/ssl/cert.pem`. The app build signs it with the identifier `io.github.openforticlient.openfortivpn`, the hardened runtime, and the app's certificate. With the helper, the app always uses this one; the path setting applies to sudo only.
 
 **The helper** ([src/OpenFortiClient.Helper](../src/OpenFortiClient.Helper/)) is a small Swift program, `Contents/MacOS/OpenFortiClientHelper`, with its launchd plist in `Contents/Library/LaunchDaemons`. It serves one XPC mach service, `io.github.openforticlient.helper`, and its job is deliberately narrow:
 
@@ -154,7 +156,7 @@ Its checks:
 | Check | How |
 |---|---|
 | Only our app may connect | `setConnectionCodeSigningRequirement`: identifier `io.github.openforticlient`, Apple-issued certificate, same team ID. The app checks the helper the same way. A build without a team ID refuses to run |
-| Only openfortivpn may run | The executable must resolve (after symlinks) to Homebrew's openfortivpn under `/opt/homebrew` or `/usr/local` |
+| Only our openfortivpn may run | The executable must be the bundled one next to the helper (`Contents/MacOS/openfortivpn`, found through the helper's own path). The helper copies it into `/var/run/openforticlient`, checks the copy's code signature (identifier `io.github.openforticlient.openfortivpn`, Apple-issued certificate, same team ID, unaltered), and runs the copy, then deletes it. Because the app bundle is writable by its owner, checking and running the root-owned copy closes the gap between the check and the launch ([CodeSignature.swift](../src/OpenFortiClient.Helper/CodeSignature.swift)) |
 | Only known config keys | host, port, username, password, realm, trusted-cert, user-cert, user-key, set-dns, set-routes. Anything else (`pppd-plugin`, `pppd-call`, …) is refused, because it could make root run another program |
 | Secrets stay root-only | The config and client key are written as 0600 files under `/var/run/openforticlient` (0700, root). The config goes at openfortivpn's first output line; the key when openfortivpn exits, because openfortivpn loads it again for every TLS connection |
 | Nothing is left running | When the app's connection ends (quit, crash), the helper stops openfortivpn |
@@ -256,8 +258,9 @@ The menu shows the status, "Connect to {name}" per connection (connections witho
 | VPN engine | openfortivpn, run as a separate process | Proven, follows the routing table (this fixes the core problem), and GPL-safe as a separate process |
 | UI framework | .NET MAUI (Mac Catalyst) | The team knows .NET, and the same code base can later target Windows |
 | Engine abstraction | `IVpnEngine` | Keeps the option to build our own engine later |
-| Root access | sudoers first, `SMAppService` later | Fastest path to a working MVP, with a clean upgrade path |
-| Distribution | Signed DMG or Homebrew cask, no App Store | The App Store sandbox would prevent us from starting openfortivpn |
+| Root access | `SMAppService` privileged helper (sudoers in development builds) | Started with sudoers for a fast MVP; the helper replaced it in phase 4 |
+| openfortivpn | Bundled and signed, built from pinned sources | No Homebrew dependency, a known OpenSSL, and a binary that only root and our team's signature can vouch for |
+| Distribution | Notarised DMG on GitHub Releases and a Homebrew cask, no App Store | The App Store sandbox would prevent us from starting openfortivpn |
 
 ## Risks
 
@@ -268,5 +271,6 @@ The menu shows the status, "Connect to {name}" per connection (connections witho
 | Mac Catalyst limits (menu bar, AppKit APIs) | Isolate the platform code in `Platforms/MacCatalyst`, and use an AppKit bundle where needed |
 | `pppd` changes in future macOS versions | Track openfortivpn upstream. This is also an argument for our own engine in phase 5 |
 | Users' companies forbid third-party VPN clients | Clear disclaimer, and point users to their IT policy |
-| Homebrew's openfortivpn binary is writable by the admin user, and the helper runs it as root, so a process running as that user could replace it and get root. The sudoers rule has the same weakness | Accepted for now and documented. The follow-up is to ship a verified openfortivpn inside the app (phase 4b), which also removes the Homebrew dependency |
-| A free Personal Team signs with a 7-day profile; the installed app stops launching when it expires | `scripts/provision-signing.sh` plus `scripts/build-release.sh` renew it; phase 4b moves to Developer ID |
+| A process running as the user replaces the openfortivpn that root runs | Closed for the helper (phase 4b): it runs only a root-owned copy of the bundled openfortivpn whose signature it checked. The development sudoers rule still trusts Homebrew's binary, which the admin user can write; it is for development Macs only |
+| The bundled openfortivpn or OpenSSL has a security fix | Watch both projects' releases; bump the pinned version and checksum in `scripts/build-openfortivpn.sh` and publish a new release. OpenSSL 3.5 is a long-term support release (to 2030) |
+| A free Personal Team signs with a 7-day profile; the installed app stops launching when it expires | Development only: `scripts/provision-signing.sh` plus `scripts/build-release.sh` renew it. Releases are signed with Developer ID, whose profile lasts years |

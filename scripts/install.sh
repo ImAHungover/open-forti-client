@@ -52,17 +52,13 @@ if [ -z "$SOURCE" ] || [ ! -d "$SOURCE" ]; then
     exit 1
 fi
 
-if ! command -v openfortivpn >/dev/null 2>&1 && [ ! -x /opt/homebrew/bin/openfortivpn ]; then
-    echo "openfortivpn is not installed. Install it first: brew install openfortivpn" >&2
-    exit 1
-fi
-
 quit_app
 rm -rf "$TARGET"
 ditto "$SOURCE" "$TARGET"
 echo "Installed $TARGET."
 
-# Release builds use the privileged helper; the development-time sudoers rule is no longer needed.
+# Release builds use the privileged helper and their own openfortivpn; the development-time sudoers rule
+# is no longer needed.
 if [ -f /etc/sudoers.d/openfortivpn ] && ask "Remove the old sudoers rule for openfortivpn (needs your password)?"; then
     sudo rm /etc/sudoers.d/openfortivpn
 fi

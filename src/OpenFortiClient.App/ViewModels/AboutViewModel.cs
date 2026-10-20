@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OpenFortiClient.App.Services;
 using OpenFortiClient.Core.Engine.OpenFortiVpn;
 using OpenFortiClient.Core.Settings;
 
@@ -16,7 +17,7 @@ public sealed partial class AboutViewModel(ISettingsStore settings) : Observable
     [RelayCommand]
     private async Task LoadAsync()
     {
-        var path = (await settings.GetAsync()).OpenFortiVpnPath;
+        var path = ElevationLauncher.OpenFortiVpnPath(await settings.GetAsync());
         OpenFortiVpnVersion = await OpenFortiVpnInfo.GetVersionAsync(path) ?? $"not found at {path}";
     }
 

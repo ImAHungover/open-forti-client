@@ -13,38 +13,41 @@ dotnet build src/OpenFortiClient.App -f net10.0-maccatalyst -t:Build -t:Run   # 
 
 ## Toolchain
 
-| Need                                                  | For                 | Install                                                                          |
-| ----------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------- |
-| macOS 14 or later                                     | everything          |                                                                                  |
-| [.NET 10 SDK](https://dotnet.microsoft.com/download)   | everything          | The installer from dotnet.microsoft.com (see the note below)                   |
-| openfortivpn 1.24 or later                            | connecting          | `brew install openfortivpn`                                                    |
-| Xcode (the full app, not only the Command Line Tools) | the Mac app         | App Store, then `sudo xcode-select -s /Applications/Xcode.app`                 |
-| .NET MAUI workload                                    | the Mac app         | `sudo dotnet workload install maui`                                            |
-| An Apple ID signed in to Xcode                        | signed builds       | Xcode → Settings → Accounts. A free Personal Team is enough                    |
-| Node.js, Appium 3 and its Mac2 driver                 | end-to-end UI tests | `brew install node`, `npm install -g appium`, `appium driver install mac2` |
+| Need | For | Install |
+|---|---|---|
+| macOS 14 or later | everything | |
+| [.NET 10 SDK](https://dotnet.microsoft.com/download) | everything | The installer from dotnet.microsoft.com (see the note below) |
+| autoconf, automake, pkgconf | building the bundled openfortivpn (once) | `brew install autoconf automake pkgconf` |
+| openfortivpn 1.24 or later | connecting from Debug builds (sudo) | `brew install openfortivpn` |
+| Xcode (the full app, not only the Command Line Tools) | the Mac app | App Store, then `sudo xcode-select -s /Applications/Xcode.app` |
+| .NET MAUI workload | the Mac app | `sudo dotnet workload install maui` |
+| An Apple ID signed in to Xcode | signed builds | Xcode → Settings → Accounts. A free Personal Team is enough |
+| Node.js, Appium 3 and its Mac2 driver | end-to-end UI tests | `brew install node`, `npm install -g appium`, `appium driver install mac2` |
 
 **Use one .NET SDK.** Workloads are installed per SDK. VS Code's C# Dev Kit uses the SDK in `/usr/local/share/dotnet` (from Microsoft's installer), while `brew install dotnet` adds a second one in `/opt/homebrew` that the terminal finds first. With both, the MAUI workload can end up in only one of them: the terminal builds fine, but VS Code shows `NETSDK1147 … maui-maccatalyst` and "Failed to restore NuGet packages" on `OpenFortiClient.slnx`. Install .NET with Microsoft's installer only (`brew uninstall dotnet` if you have both), then check that `which dotnet` points to `/usr/local/share/dotnet/dotnet` and `dotnet workload list` shows `maui-maccatalyst`.
 
 ### Dependencies and versions
 
-Known to work together (2026-10-18):
+Known to work together (2026-10-19):
 
-| Dependency                                | Version                                | Used for                                                   | Where it is set                                              |
-| ----------------------------------------- | -------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
-| macOS                                     | 27.0.1 (the app needs 14 or later)     | everything                                                 | `SupportedOSPlatformVersion` 17.0 (Catalyst 17 = macOS 14) |
-| Xcode                                     | 27.1 (macOS SDK 27.0, Swift 6.4)       | Mac app, Swift parts                                       | `xcode-select`                                             |
-| .NET SDK                                  | 10.0.401                               | everything                                                 |                                                              |
-| .NET MAUI workload                        | 10.0.110 (Mac Catalyst SDK 27.0.10722) | Mac app                                                    | `dotnet workload install maui`                             |
-| Microsoft.Maui.Controls                   | 10.0.110                               | UI                                                         | app csproj (`$(MauiVersion)`)                              |
-| CommunityToolkit.Mvvm                     | 8.4.2                                  | view models (`[ObservableProperty]`, `[RelayCommand]`) | app csproj                                                   |
-| Microsoft.Extensions.Logging.Debug        | 10.0.0                                 | debug logging                                              | app csproj                                                   |
-| openfortivpn                              | 1.24.1 (Homebrew)                      | the VPN itself                                             | Settings → openfortivpn path                                |
-| Inter, JetBrains Mono fonts               | Inter 4.1, JetBrains Mono 2.304        | the ResultLab look                                         | `Resources/Fonts`, licences in `third-party/fonts`       |
-| xUnit / runner / Test SDK                 | 2.9.3 / 3.1.4 / 17.14.1                | Core and UI tests                                          | test csprojs                                                 |
-| Microsoft.Extensions.TimeProvider.Testing | 10.11.0                                | fake clock in the reconnect tests                          | Core test csproj                                             |
-| Appium.WebDriver                          | 9.0.0                                  | UI tests                                                   | UI test csproj                                               |
-| Node.js                                   | 26.12                                  | Appium                                                     | Homebrew                                                     |
-| Appium / mac2 driver                      | 3.8.0 / 4.4.0                          | UI tests                                                   | `npm`, `appium driver install mac2`                      |
+| Dependency | Version | Used for | Where it is set |
+|---|---|---|---|
+| macOS | 27.0.1 (the app needs 14 or later) | everything | `SupportedOSPlatformVersion` 17.0 (Catalyst 17 = macOS 14) |
+| Xcode | 27.1 (macOS SDK 27.0, Swift 6.4) | Mac app, Swift parts | `xcode-select` |
+| .NET SDK | 10.0.401 | everything | |
+| .NET MAUI workload | 10.0.110 (Mac Catalyst SDK 27.0.10722) | Mac app | `dotnet workload install maui` |
+| Microsoft.Maui.Controls | 10.0.110 | UI | app csproj (`$(MauiVersion)`) |
+| CommunityToolkit.Mvvm | 8.4.2 | view models (`[ObservableProperty]`, `[RelayCommand]`) | app csproj |
+| Microsoft.Extensions.Logging.Debug | 10.0.0 | debug logging | app csproj |
+| openfortivpn (bundled) | 1.24.1 | the VPN itself, run by the helper | `scripts/build-openfortivpn.sh` (version and SHA-256) |
+| OpenSSL (in the bundled openfortivpn) | 3.5.9 LTS, static | TLS to the gateway | `scripts/build-openfortivpn.sh` |
+| openfortivpn (Homebrew) | 1.24.1 | Debug builds with sudo | Settings → openfortivpn path (sudo) |
+| Inter, JetBrains Mono fonts | Inter 4.1, JetBrains Mono 2.304 | the ResultLab look | `Resources/Fonts`, licences in `third-party/fonts` |
+| xUnit / runner / Test SDK | 2.9.3 / 3.1.4 / 17.14.1 | Core and UI tests | test csprojs |
+| Microsoft.Extensions.TimeProvider.Testing | 10.11.0 | fake clock in the reconnect tests | Core test csproj |
+| Appium.WebDriver | 9.0.0 | UI tests | UI test csproj |
+| Node.js | 26.12 | Appium | Homebrew |
+| Appium / mac2 driver | 3.8.0 / 4.4.0 | UI tests | `npm`, `appium driver install mac2` |
 
 The Swift parts (`src/OpenFortiClient.Native`, `src/OpenFortiClient.Helper`) have no packages: they use the macOS SDK only (AppKit, ServiceManagement, Foundation/XPC).
 
@@ -101,7 +104,7 @@ Saved passwords need a signed build; everything else works unsigned.
    ./scripts/provision-signing.sh <TEAM_ID>
    ```
 
-The script builds a stub macOS app ([scripts/provisioning/](../scripts/provisioning/)) with the app's bundle ID and Keychain entitlement, using Xcode's automatic signing. That makes Xcode register the bundle ID and your Mac, create an *Apple Development* certificate, and download the profile `Mac Team Provisioning Profile: io.github.openforticlient`. The script then writes `src/OpenFortiClient.App/Signing.local.props` with your certificate and profile name. That file is gitignored; [Signing.local.props.example](../src/OpenFortiClient.App/Signing.local.props.example) shows its shape if you want to fill it in by hand.
+The script builds a stub macOS app ([scripts/provisioning/](../scripts/provisioning/)) with the app's bundle ID and Keychain entitlement, using Xcode's automatic signing. That makes Xcode register the bundle ID and your Mac, create an *Apple Development* certificate, and download the profile `Mac Team Provisioning Profile: io.github.openforticlient`. The script then writes `src/OpenFortiClient.App/Signing.local.props` with your certificate (by its SHA-1 hash, because `codesign` cannot find a name with non-ASCII characters) and the profile name. That file is gitignored; [Signing.local.props.example](../src/OpenFortiClient.App/Signing.local.props.example) shows its shape if you want to fill it in by hand.
 
 **How the build picks the entitlements.**
 
@@ -111,6 +114,8 @@ The script builds a stub macOS app ([scripts/provisioning/](../scripts/provision
 | set                                  | [Entitlements.Signed.plist](../src/OpenFortiClient.App/Platforms/MacCatalyst/Entitlements.Signed.plist) | Signed with your certificate and profile. Saved passwords work                                        |
 
 **Renewal.** Profiles from a free Personal Team expire after **7 days**; after that the signed app no longer launches. Run the script again and rebuild with `--no-incremental`. A paid team's profiles last a year.
+
+**Developer ID (releases).** With a paid Apple Developer account, `./scripts/provision-signing.sh <TEAM_ID> --developer-id` writes `Signing.local.props` for the *Developer ID Application* certificate and a Developer ID profile instead. Those run on any Mac and last for years; [release.md](release.md) has the one-time setup, and how to set up another Mac with the same certificate. Development builds work with either.
 
 **Bundle ID.** A bundle ID can belong to only one team. If `io.github.openforticlient` is already taken by someone else's team, the script fails; change `ApplicationId` in the csproj and `BUNDLE_ID` in the script to an ID of your own, locally.
 
@@ -137,15 +142,21 @@ The app bundle is `src/OpenFortiClient.App/bin/Debug/net10.0-maccatalyst/maccata
 ./scripts/install.sh          # install the result into /Applications
 ```
 
-The release build is trimmed and uses the helper. It is signed with your development certificate, not notarised (that needs a paid account, phase 4b), so it runs on Macs where you build it, and its free-team profile expires after 7 days: the script prints the date. The version comes from `ApplicationDisplayVersion` in the app's csproj. Intel Macs are not supported: the Swift parts are built for `arm64` only.
+The release build is trimmed, uses the helper and bundles openfortivpn. Signed release builds get the **hardened runtime** and secure timestamps (notarisation needs both); the .NET SDK adds the `com.apple.security.cs.allow-jit` entitlement the runtime needs under it. Signed with your development certificate, the build runs only on Macs where you build it, and a free-team profile expires after 7 days (the script prints the date). Signed with Developer ID, it is ready for `scripts/notarize.sh` ([release.md](release.md)). The version comes from `ApplicationDisplayVersion` in the app's csproj. Intel Macs are not supported: everything is built for `arm64` only.
+
+### Bundled openfortivpn
+
+The app build runs [scripts/build-openfortivpn.sh](../scripts/build-openfortivpn.sh) once, when `artifacts/openfortivpn/<version>/openfortivpn` does not exist yet (about 30 seconds). It downloads OpenSSL and openfortivpn, checks their SHA-256, builds OpenSSL as static libraries and openfortivpn against them, and fails if the result links anything outside macOS. Next to the binary it keeps the licences (copied into the app's `Contents/Resources/Licenses`) and the source archives (published with each release). The csproj target `SignOpenFortiVpn` then signs a copy as `io.github.openforticlient.openfortivpn` and bundles it as `Contents/MacOS/openfortivpn`.
+
+To update it, change the version and SHA-256 in the script (`brew info --json=v2 openfortivpn` shows the current release and its checksum) and run `./scripts/build-openfortivpn.sh --force`.
 
 ## Tests
 
-| Suite                                                                 | Covers                                                                                    | Run                                                                                                                                                                                                                              |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [OpenFortiClient.Core.Tests](../tests/OpenFortiClient.Core.Tests/)     | Engine state machine, output parsing, config files, stores                                | `dotnet test OpenFortiClient.Core.slnf` (seconds, no Xcode needed)                                                                                                                                                             |
-| [OpenFortiClient.Helper.Tests](../tests/OpenFortiClient.Helper.Tests/) | The helper's session logic: allowlists, 0600 files and when they go, output, OTP, SIGTERM | `./scripts/test-helper.sh` (seconds, no root)                                                                                                                                                                                  |
-| [OpenFortiClient.App.UiTests](../tests/OpenFortiClient.App.UiTests/)   | The real app, end to end, driven through its UI                                           | `./scripts/run-ui-tests.sh --quick` (11 tests, one per main flow, about 2 minutes) while working; `./scripts/run-ui-tests.sh` (all 46, about 9 minutes) before a release; `--release` runs against a trimmed Release build |
+| Suite | Covers | Run |
+|---|---|---|
+| [OpenFortiClient.Core.Tests](../tests/OpenFortiClient.Core.Tests/) | Engine state machine, output parsing, config files, stores | `dotnet test OpenFortiClient.Core.slnf` (seconds, no Xcode needed) |
+| [OpenFortiClient.Helper.Tests](../tests/OpenFortiClient.Helper.Tests/) | The helper's session logic: only the bundled openfortivpn, run from a checked private copy, allowed config keys, 0600 files and when they go, output, OTP, SIGTERM. And its signature check against signed, ad hoc, unsigned and altered binaries (needs `Signing.local.props`, otherwise skipped) | `./scripts/test-helper.sh` (seconds, no root) |
+| [OpenFortiClient.App.UiTests](../tests/OpenFortiClient.App.UiTests/) | The real app, end to end, driven through its UI | `./scripts/run-ui-tests.sh --quick` (11 tests, one per main flow, about 2 minutes) while working; `./scripts/run-ui-tests.sh` (all 46, about 9 minutes) before a release; `--release` runs against a trimmed Release build |
 
 ### End-to-end UI tests
 
@@ -220,12 +231,12 @@ These look odd on their own, so here is why each one exists.
 
 ### What runs where
 
-| Part                                                 | Process                                                       | Language                | Built by                             | Its log                                                     |
-| ---------------------------------------------------- | ------------------------------------------------------------- | ----------------------- | ------------------------------------ | ----------------------------------------------------------- |
-| The app                                              | `OpenFortiClient.App` (you)                                 | C# (MAUI, Mac Catalyst) | `dotnet build`                     | `~/Library/Logs/OpenFortiClient/app.log`                  |
-| Native library (menu bar, helper client and control) | inside the app                                                | Swift                   | csproj target `BuildNativeLibrary` | the app log ("menu bar", "helper" lines) and the system log |
-| Privileged helper                                    | `OpenFortiClientHelper`, as root, started by launchd        | Swift                   | csproj target `BuildHelper`        | the system log (`process == "OpenFortiClientHelper"`)     |
-| openfortivpn                                         | child of the helper (release) or of `sudo` (debug), as root | C (Homebrew)            |                                      | its output, in the app log ("openfortivpn:" lines)          |
+| Part | Process | Language | Built by | Its log |
+|---|---|---|---|---|
+| The app | `OpenFortiClient.App` (you) | C# (MAUI, Mac Catalyst) | `dotnet build` | `~/Library/Logs/OpenFortiClient/app.log` |
+| Native library (menu bar, helper client and control) | inside the app | Swift | csproj target `BuildNativeLibrary` | the app log ("menu bar", "helper" lines) and the system log |
+| Privileged helper | `OpenFortiClientHelper`, as root, started by launchd | Swift | csproj target `BuildHelper` | the system log (`process == "OpenFortiClientHelper"`) |
+| openfortivpn | a private copy of the bundled one, child of the helper (release); Homebrew's, child of `sudo` (debug); as root | C | `scripts/build-openfortivpn.sh`, signed by csproj target `SignOpenFortiVpn` | its output, in the app log ("openfortivpn:" lines) |
 
 ### The app
 
@@ -265,7 +276,8 @@ These look odd on their own, so here is why each one exists.
 
 - Its output is in the app log as "openfortivpn:" lines.
 - With Settings → Log level → Debug the app adds more of its own detail.
-- To try a config by hand, run the same command the app runs, with a config file of your own (mode 0600): `sudo openfortivpn -c my.conf -v`.
+- To try a config by hand, run the same command the app runs, with a config file of your own (mode 0600): `sudo openfortivpn -c my.conf -v`, or the bundled one: `sudo /Applications/OpenFortiClient.app/Contents/MacOS/openfortivpn -c my.conf -v`.
+- If the helper refuses with "failed its signature check", the bundled openfortivpn was changed or signed by another team: `codesign -dv --verbose=2 /Applications/OpenFortiClient.app/Contents/MacOS/openfortivpn` shows what it is signed with. Reinstall the app.
 
 ### The UI tests
 

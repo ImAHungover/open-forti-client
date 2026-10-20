@@ -25,10 +25,10 @@ FortiClient VPN 7.4.3 works well on Windows but can fail on macOS. Its Network E
 
 | Layer | Choice | Notes |
 |---|---|---|
-| VPN engine | [openfortivpn](https://github.com/adrienverge/openfortivpn) (GPLv3) | Used as-is for now and run as a separate process. A custom engine may come later. |
+| VPN engine | [openfortivpn](https://github.com/adrienverge/openfortivpn) (GPLv3) | Built from pinned sources, bundled in the app and run as a separate process. A custom engine may come later. |
 | UI | [.NET MAUI](https://learn.microsoft.com/dotnet/maui/) on macOS (Mac Catalyst) | Native look on the Mac. The same code base can target Windows later. |
 | Engine abstraction | `IVpnEngine` interface | The UI never calls openfortivpn directly, so the engine can be swapped later. |
-| Root access | `sudoers` rule (MVP), then an `SMAppService` helper | openfortivpn needs root to start `pppd` and set routes and DNS. |
+| Root access | An `SMAppService` privileged helper (a `sudoers` rule in development builds) | openfortivpn needs root to start `pppd` and set routes and DNS. |
 | Configuration | One profile per connection, stored locally | Passwords go in the macOS Keychain, never in plain files. |
 
 The UI never touches the network itself. It writes an openfortivpn config, starts and stops the openfortivpn process with root rights, and reads its output to show the connection state and logs. Details are in [docs/architecture.md](docs/architecture.md).
@@ -50,25 +50,27 @@ The features follow the screens of the official client (see [flows.md](docs/raw/
 - **Settings**: back up and restore connections, set the log level, export or clear logs, and set VPN options such as accepting an invalid server certificate.
 - **Notifications**: a history of connection events and errors.
 - **About**: version and licence information.
-- **Menu bar icon** (phase 3, not built yet): quick connect and disconnect without opening the main window.
+- **Menu bar icon**: quick connect and disconnect without opening the main window.
 
 Out of scope for now: IPsec VPN, EMS / Zero Trust features, SAML/SSO login (to be evaluated later, since openfortivpn has partial support).
 
 ## Install
 
-OpenFortiClient runs on Macs with Apple Silicon and macOS 14 or later, and needs openfortivpn (`brew install openfortivpn`). There is no notarised download yet (phase 4b), so build it yourself:
+OpenFortiClient runs on Macs with Apple Silicon and macOS 14 or later. It brings its own openfortivpn, so nothing else is needed. Install it with Homebrew:
 
 ```sh
-./scripts/provision-signing.sh <TEAM_ID>   # once, and every 7 days on a free Apple team (see the guide)
-./scripts/build-release.sh                 # artifacts/release/OpenFortiClient-<version>.dmg
-./scripts/install.sh                       # copies it to /Applications and opens it
+brew install --cask imahungover/tap/openforticlient
 ```
 
-Then in the app: **Settings → Privileged helper → Install**, and allow OpenFortiClient in **System Settings → General → Login Items**. The helper runs openfortivpn as root for the app, so no sudoers rule is needed. Remove everything again with `./scripts/install.sh --uninstall` (add `--purge` to also remove connections, settings and logs).
+or download the notarised DMG from [Releases](https://github.com/ImAHungover/open-forti-client/releases) and drag OpenFortiClient to Applications.
+
+Then in the app: **Settings → Privileged helper → Install**, and allow OpenFortiClient in **System Settings → General → Login Items**. The helper runs openfortivpn as root for the app, so no sudoers rule is needed. Remove it with `brew uninstall --cask openforticlient` (add `--zap` to also remove connections, settings and logs), or with `./install.sh --uninstall` from the DMG.
+
+To build it yourself instead, see [docs/development.md](docs/development.md#release-build).
 
 ## Getting started (development)
 
-You need macOS 14 or later, the .NET 10 SDK, openfortivpn, Xcode and the .NET MAUI workload. The full setup, code signing and troubleshooting are in [docs/development.md](docs/development.md).
+You need macOS 14 or later, the .NET 10 SDK, Xcode, the .NET MAUI workload, and autoconf, automake and pkgconf to build the bundled openfortivpn. Debug builds run Homebrew's openfortivpn with sudo. The full setup, code signing and troubleshooting are in [docs/development.md](docs/development.md).
 
 ```sh
 dotnet test OpenFortiClient.Core.slnf                      # Core and tests, no Xcode needed
@@ -94,30 +96,36 @@ src/
     Logging/                    rotating file log, secret masking
     Notifications/              notification history
   OpenFortiClient.App/          .NET MAUI app (Mac Catalyst)
-  OpenFortiClient.Native/       Swift: menu bar icon, helper client and control, built into the app as an AppKit library
-  OpenFortiClient.Helper/       Swift: the privileged helper (launch daemon) that runs openfortivpn as root
     Views/ ViewModels/          one page per FortiClient screen, MVVM
     Services/                   VpnSession, Keychain store, dialogs
       EndToEnd/                 Debug-only test mode for the UI tests
     Platforms/MacCatalyst/      entry point, Info.plist, entitlements
+  OpenFortiClient.Native/       Swift: menu bar icon, helper client and control, built into the app as an AppKit library
+  OpenFortiClient.Helper/       Swift: the privileged helper (launch daemon) that runs the bundled openfortivpn as root
 tests/
   OpenFortiClient.Core.Tests/   xUnit tests for Core (engine runs against a fake launcher)
   OpenFortiClient.App.UiTests/  end-to-end tests: the real app through Appium, scripted openfortivpn
-  OpenFortiClient.Helper.Tests/ the helper's session logic against a fake openfortivpn
+  OpenFortiClient.Helper.Tests/ the helper's session logic and signature check
 scripts/
   install-sudoers-rule.sh       one-time root-access setup
   provision-signing.sh          signing certificate and profile for a signed build
   provisioning/                 stub Xcode project the signing script builds
   run-ui-tests.sh               builds the test copy of the app and runs the UI tests (--release too)
   test-helper.sh                builds and runs the helper tests
-  build-release.sh              release app and DMG
+  build-openfortivpn.sh         builds the bundled openfortivpn and OpenSSL from pinned sources
+  build-release.sh              release app and DMG, with the GPL sources next to it
+  notarize.sh                   notarises and staples the DMG (Developer ID)
+  make-cask.sh                  writes the Homebrew cask for the DMG
   install.sh                    install into /Applications, or --uninstall
+.github/workflows/ci.yml        core and helper tests on every push
 third-party/
   fonts/                        licences of the bundled Inter and JetBrains Mono fonts
 docs/
   vision.md                     why we build it, goals, phases
   architecture.md               how it is built
   development.md                setting up a Mac, signing, troubleshooting
+  release.md                    publishing a release: Developer ID, notarisation, Homebrew
+  roadmap.md                    what comes next
   raw/                          source material (unedited)
     wireframes/flows.md         user journey, problem statement, screen descriptions
     wireframes/image/           screenshots of the official FortiClient VPN UI
@@ -126,9 +134,9 @@ docs/
 
 ## Project status
 
-As of 2026-10-18: **phases 1 to 4 (free tier) are done; this is version 1.0.0.** The Mac app connects to a real FortiGate through openfortivpn, routed through the company L2TP VPN as intended. Connections, saved passwords, several gateways with failover, the certificate prompt, notifications, automatic reconnect ("always up"), auto-connect and the menu bar icon all work and are covered by unit tests and end-to-end UI tests.
+As of 2026-10-19: **phases 1 to 4 (free tier) are done; this is version 1.0.0.** The Mac app connects to a real FortiGate through openfortivpn, routed through the company L2TP VPN as intended. Connections, saved passwords, several gateways with failover, the certificate prompt, notifications, automatic reconnect ("always up"), auto-connect and the menu bar icon all work and are covered by unit tests and end-to-end UI tests.
 
-Next: phase 4b, a public release (Developer ID, notarisation, Homebrew cask), once there is a paid Apple Developer account.
+Phase 4b, the public release, is in progress: openfortivpn is built from pinned sources and bundled, the helper runs only that signed copy, release builds use the hardened runtime, and the notarisation, cask and CI scripts are ready. What is left is the Developer ID signing on the paid account and the first published release ([docs/release.md](docs/release.md)).
 
 ## Roadmap
 
@@ -139,13 +147,13 @@ Next: phase 4b, a public release (Developer ID, notarisation, Homebrew cask), on
 | 2. Daily driver | Profile management, Keychain, several gateways, certificate trust prompt, notifications | ✅ Done (2026-10-17), covered by unit and end-to-end tests |
 | 3. Comfort | Menu bar icon, auto-connect, reconnect on network change, backup and restore | ✅ Done (2026-10-17): always up with backoff and retry on network change, auto-connect at start, menu bar icon (the app keeps running when its window closes), backup and restore. Start at login is left for later |
 | 4. Polish and release (free tier) | `SMAppService` privileged helper, client private key in the Keychain, release build, install script, licence | ✅ Done (2026-10-18). Release builds use the helper; the sudoers rule is for development builds only. Version 1.0.0, MIT |
-| 4b. Public release | Developer ID signing and notarisation, Homebrew cask, GitHub repository and releases, a verified openfortivpn inside the app | Not started: needs a paid Apple Developer account and hosting. Runbook: [docs/release.md](docs/release.md) |
+| 4b. Public release | Developer ID signing and notarisation, Homebrew cask, GitHub repository and releases, a verified openfortivpn inside the app | In progress: bundled openfortivpn, hardened runtime, release scripts and CI done; first notarised release pending. Runbook: [docs/release.md](docs/release.md) |
 | Later | More connection types (SAML, IPsec, …) and other improvements | TBC/TBD: [docs/roadmap.md](docs/roadmap.md) |
 | 5. Decide on the engine | Keep openfortivpn, or build our own implementation | Not started (after phase 3) |
 
 ## Licence
 
-[MIT](LICENSE), © 2026 ResultLab. openfortivpn is GPLv3; it is not bundled, and the app runs it as a separate program without linking it, so it does not affect the licence of this project's code. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+[MIT](LICENSE), © 2026 ResultLab. The app bundles openfortivpn (GPLv3) and the OpenSSL it is built with (Apache 2.0), unmodified. It runs openfortivpn as a separate program and does not link it, so the GPL does not extend to this project's code. Each release publishes the exact openfortivpn and OpenSSL sources next to the DMG. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Disclaimer
 

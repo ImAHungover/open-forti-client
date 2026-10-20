@@ -1,0 +1,28 @@
+# Core and helper tests on every push and pull request. The app itself (MAUI, Mac Catalyst) and its UI
+# tests need a signed build and a logged-in session, so they run locally: see docs/development.md, "Tests".
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet test OpenFortiClient.Core.slnf -nologo
+
+  helper:
+    # Session logic against a fake openfortivpn; the signature check tests need a signing identity and skip.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: ./scripts/test-helper.sh

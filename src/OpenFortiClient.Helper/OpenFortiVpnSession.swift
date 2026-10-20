@@ -7,6 +7,7 @@ enum SessionError: Error, CustomStringConvertible {
     case executableNotAllowed(String)
     case configKeyNotAllowed(String)
     case alreadyRunning
+    case notVerified(String)
     case launchFailed(String)
 
     var description: String {
@@ -14,6 +15,7 @@ enum SessionError: Error, CustomStringConvertible {
         case .executableNotAllowed(let path): return "\(path) is not an openfortivpn the helper may run."
         case .configKeyNotAllowed(let key): return "The config key \"\(key)\" is not allowed."
         case .alreadyRunning: return "openfortivpn is already running for this connection."
+        case .notVerified(let reason): return "The bundled openfortivpn failed its signature check (\(reason)). Reinstall OpenFortiClient."
         case .launchFailed(let reason): return "Could not start openfortivpn: \(reason)"
         }
     }
@@ -27,54 +29,82 @@ final class OpenFortiVpnSession {
         "user-cert", "user-key", "set-dns", "set-routes",
     ]
 
-    /// Homebrew's openfortivpn, after following symlinks: /opt/homebrew or /usr/local.
-    static func isHomebrewOpenFortiVpn(_ path: String) -> Bool {
-        let resolved = URL(fileURLWithPath: path).resolvingSymlinksInPath().path
-        let pattern = #"^/(opt/homebrew|usr/local)/(Cellar/openfortivpn/[^/]+/bin|bin)/openfortivpn$"#
-        return resolved.range(of: pattern, options: .regularExpression) != nil
-    }
-
     var onOutput: ((String) -> Void)?
     var onExit: ((Int32) -> Void)?
 
     private let runtimeDirectory: URL
-    private let isAllowed: (String) -> Bool
+    private let bundled: URL
+    private let verify: (URL) throws -> Void
     private let lock = NSLock()
     private var process: Process?
     private var input: FileHandle?
     private var configFile: URL?
     private var keyFile: URL?
+    private var executableCopy: URL?
     private var pending = Data()
     private var promptMarkers: [String] = []
 
-    init(runtimeDirectory: URL, isAllowed: @escaping (String) -> Bool = OpenFortiVpnSession.isHomebrewOpenFortiVpn) {
+    /// - Parameters:
+    ///   - bundled: the openfortivpn in the app bundle, next to the helper. The only one it runs.
+    ///   - verify: checks the code signature of the private copy that will run; throws why not.
+    init(runtimeDirectory: URL, bundled: URL, verify: @escaping (URL) throws -> Void) {
         self.runtimeDirectory = runtimeDirectory
-        self.isAllowed = isAllowed
+        self.bundled = bundled.resolvingSymlinksInPath()
+        self.verify = verify
     }
 
     func start(executable: String, config: String, clientKey: String?, promptMarkers: [String]) throws {
         lock.lock()
         defer { lock.unlock() }
         guard process == nil else { throw SessionError.alreadyRunning }
-        guard isAllowed(executable) else { throw SessionError.executableNotAllowed(executable) }
+        guard URL(fileURLWithPath: executable).resolvingSymlinksInPath().path == bundled.path else {
+            throw SessionError.executableNotAllowed(executable)
+        }
 
         var lines = try Self.checkedLines(config)
         try Self.ensurePrivateDirectory(runtimeDirectory)
         let id = UUID().uuidString
+
+        // Whatever fails from here on, nothing is left behind.
+        var started = false
+        defer {
+            if !started {
+                deleteConfig()
+                deleteKey()
+                deleteExecutableCopy()
+            }
+        }
+
+        // The app bundle is writable by its owner, so the bundled file could change between a check and the
+        // launch. Copy its bytes into a new root-owned file (never a link), check the copy, and run the copy.
+        let copy = runtimeDirectory.appendingPathComponent("\(id).openfortivpn")
+        do {
+            let bytes = try Data(contentsOf: bundled)
+            executableCopy = copy
+            try Self.writePrivate(copy, bytes, mode: 0o500)
+        } catch {
+            throw SessionError.launchFailed("cannot copy \(bundled.path): \(error.localizedDescription)")
+        }
+        do {
+            try verify(copy)
+        } catch {
+            throw SessionError.notVerified("\(error)")
+        }
+
         if let clientKey {
             let keyFile = runtimeDirectory.appendingPathComponent("\(id).key")
-            try Self.writePrivate(keyFile, clientKey)
+            try Self.writePrivate(keyFile, Data(clientKey.utf8))
             self.keyFile = keyFile
             lines.removeAll { $0.hasPrefix("user-key") }
             lines.append("user-key = \(keyFile.path)")
         }
 
         let configFile = runtimeDirectory.appendingPathComponent("\(id).conf")
-        try Self.writePrivate(configFile, lines.joined(separator: "\n") + "\n")
+        try Self.writePrivate(configFile, Data((lines.joined(separator: "\n") + "\n").utf8))
         self.configFile = configFile
 
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
+        process.executableURL = copy
         process.arguments = ["-c", configFile.path]
         let output = Pipe()
         let stdin = Pipe()
@@ -99,10 +129,9 @@ final class OpenFortiVpnSession {
         do {
             try process.run()
         } catch {
-            deleteConfig()
-            deleteKey()
             throw SessionError.launchFailed(error.localizedDescription)
         }
+        started = true
 
         self.process = process
         input = stdin.fileHandleForWriting
@@ -163,6 +192,7 @@ final class OpenFortiVpnSession {
         pending.removeAll()
         deleteConfig()
         deleteKey()
+        deleteExecutableCopy()
         process = nil
         input = nil
         lock.unlock()
@@ -192,12 +222,13 @@ final class OpenFortiVpnSession {
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
     }
 
-    /// Created with mode 0600 from the start, never readable by anyone else.
-    private static func writePrivate(_ url: URL, _ text: String) throws {
-        let fd = open(url.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+    /// A new file (never an existing one or a link), with its mode from the start: 0600 by default, readable
+    /// by no one else.
+    private static func writePrivate(_ url: URL, _ data: Data, mode: mode_t = 0o600) throws {
+        let fd = open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, mode)
         guard fd >= 0 else { throw SessionError.launchFailed("cannot create \(url.lastPathComponent): \(String(cString: strerror(errno)))") }
         let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
-        try handle.write(contentsOf: Data(text.utf8))
+        try handle.write(contentsOf: data)
     }
 
     /// Called with the lock held, or after the process is gone.
@@ -213,5 +244,12 @@ final class OpenFortiVpnSession {
             try? FileManager.default.removeItem(at: keyFile)
         }
         keyFile = nil
+    }
+
+    private func deleteExecutableCopy() {
+        if let executableCopy {
+            try? FileManager.default.removeItem(at: executableCopy)
+        }
+        executableCopy = nil
     }
 }

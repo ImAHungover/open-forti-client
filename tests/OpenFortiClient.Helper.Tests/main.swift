@@ -56,6 +56,7 @@ try! """
 trap 'echo "INFO:   Cancelling threads..."; exit 0' TERM
 mode=$(stat -f %Lp "$2"); config=$(tr '\\n' ';' < "$2"); key=$(sed -n 's/^user-key = //p' "$2")
 echo "MODE $mode CONFIG $config"
+echo "SELF $0"
 # Like the real one, the key is loaded again for each TLS connection, after the first output.
 sleep 0.3
 if [ -n "$key" ]; then echo "KEYMODE $(stat -f %Lp "$key") KEY $(head -n 1 "$key")"; fi
@@ -68,8 +69,13 @@ while true; do sleep 0.1; done
 """.write(to: fake, atomically: true, encoding: .utf8)
 chmod(fake.path, 0o755)
 
-func newSession() -> (OpenFortiVpnSession, Recorder) {
-    let session = OpenFortiVpnSession(runtimeDirectory: runtime, isAllowed: { $0 == fake.path })
+/// The files in the runtime folder, without the private copy of openfortivpn.
+func runtimeFiles() -> [String] {
+    ((try? FileManager.default.contentsOfDirectory(atPath: runtime.path)) ?? []).filter { !$0.hasSuffix(".openfortivpn") }
+}
+
+func newSession(verify: @escaping (URL) throws -> Void = { _ in }) -> (OpenFortiVpnSession, Recorder) {
+    let session = OpenFortiVpnSession(runtimeDirectory: runtime, bundled: fake, verify: verify)
     let recorder = Recorder()
     recorder.attach(session)
     return (session, recorder)
@@ -83,7 +89,7 @@ test("runs openfortivpn with a private config, streams output, forwards the OTP 
 
     check(recorder.waitFor { $0.lines.contains { $0.hasPrefix("Two-factor") } }, "the OTP prompt arrives without a newline")
     check(recorder.lines.first == "MODE 600 CONFIG host = vpn.example.com;password = s3cret;", "config is 0600 and complete: \(recorder.lines.first ?? "-")")
-    let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: runtime.path)) ?? []
+    let leftovers = runtimeFiles()
     check(leftovers.isEmpty, "the config is deleted once openfortivpn printed something: \(leftovers)")
     check(((try? FileManager.default.attributesOfItem(atPath: runtime.path)[.posixPermissions]) as? Int) == 0o700, "the runtime folder is 0700")
 
@@ -104,28 +110,113 @@ test("writes the client key next to the config, 0600, and removes both") {
     check(recorder.waitFor { $0.lines.contains { $0.hasPrefix("KEYMODE") } }, "the key is readable by openfortivpn")
     check(recorder.lines.contains("KEYMODE 600 KEY -----BEGIN PRIVATE KEY-----"), "key is 0600: \(recorder.lines)")
     check(!(recorder.lines.first ?? "").contains("/tmp/old.key"), "the app's user-key line is replaced by the helper's own")
-    let left = (try? FileManager.default.contentsOfDirectory(atPath: runtime.path)) ?? []
+    let left = runtimeFiles()
     check(left.count == 1 && left[0].hasSuffix(".key"), "the config is gone but the key stays while openfortivpn runs: \(left)")
     session.terminate()
     _ = recorder.waitFor { $0.exitCode != nil }
     check(((try? FileManager.default.contentsOfDirectory(atPath: runtime.path)) ?? []).isEmpty, "no key or config is left")
 }
 
-test("refuses an executable that is not openfortivpn") {
-    let session = OpenFortiVpnSession(runtimeDirectory: runtime)
-    do {
-        try session.start(executable: "/bin/sh", config: "host = x\n", clientKey: nil, promptMarkers: [])
-        check(false, "/bin/sh must be refused")
-    } catch SessionError.executableNotAllowed {
+test("refuses any executable but the bundled openfortivpn") {
+    let (session, _) = newSession()
+    for path in ["/bin/sh", "/opt/homebrew/bin/openfortivpn", root.appendingPathComponent("run/../openfortivpn-other").path] {
+        do {
+            try session.start(executable: path, config: "host = x\n", clientKey: nil, promptMarkers: [])
+            check(false, "\(path) must be refused")
+        } catch SessionError.executableNotAllowed {
+        }
     }
 }
 
-test("accepts only Homebrew's openfortivpn paths") {
-    check(!OpenFortiVpnSession.isHomebrewOpenFortiVpn("/tmp/openfortivpn"), "/tmp is refused")
-    check(!OpenFortiVpnSession.isHomebrewOpenFortiVpn("/opt/homebrew/bin/../../../tmp/openfortivpn"), "path tricks are refused")
-    if FileManager.default.fileExists(atPath: "/opt/homebrew/bin/openfortivpn") {
-        check(OpenFortiVpnSession.isHomebrewOpenFortiVpn("/opt/homebrew/bin/openfortivpn"), "the Homebrew symlink is accepted")
+test("runs a private copy of the bundled openfortivpn, checked first, and removes it afterwards") {
+    var checked: URL?
+    let (session, recorder) = newSession(verify: { checked = $0 })
+    try session.start(executable: fake.path, config: "host = x\n", clientKey: nil, promptMarkers: markers)
+
+    check(recorder.waitFor { $0.lines.contains { $0.hasPrefix("SELF ") } }, "openfortivpn started")
+    let ran = recorder.lines.first { $0.hasPrefix("SELF ") }.map { String($0.dropFirst(5)) }
+    check(checked != nil && checked?.path == ran, "the file that was checked is the one that ran: \(String(describing: checked)) vs \(ran ?? "-")")
+    check(checked?.deletingLastPathComponent().path == runtime.path, "the copy is in the root-only runtime folder")
+    session.terminate()
+    _ = recorder.waitFor { $0.exitCode != nil }
+    check(((try? FileManager.default.contentsOfDirectory(atPath: runtime.path)) ?? []).isEmpty, "the copy is removed when openfortivpn exits")
+}
+
+test("refuses a bundled openfortivpn that was replaced by a link") {
+    let bundled = root.appendingPathComponent("bundled-openfortivpn")
+    try FileManager.default.copyItem(at: fake, to: bundled)
+    let (_, recorder) = newSession()
+    let session = OpenFortiVpnSession(runtimeDirectory: runtime, bundled: bundled, verify: { _ in })
+    recorder.attach(session)
+
+    try FileManager.default.removeItem(at: bundled)
+    try FileManager.default.createSymbolicLink(at: bundled, withDestinationURL: fake)
+    do {
+        try session.start(executable: bundled.path, config: "host = x\n", clientKey: nil, promptMarkers: markers)
+        check(false, "a link in place of the bundled file must be refused")
+    } catch SessionError.executableNotAllowed {
     }
+    check(((try? FileManager.default.contentsOfDirectory(atPath: runtime.path)) ?? []).isEmpty, "nothing is left")
+}
+
+test("does not run openfortivpn when its signature check fails") {
+    struct Tampered: Error {}
+    let (session, recorder) = newSession(verify: { _ in throw Tampered() })
+    do {
+        try session.start(executable: fake.path, config: "host = x\n", clientKey: "KEY", promptMarkers: markers)
+        check(false, "a failed check must refuse the start")
+    } catch SessionError.notVerified {
+    }
+    Thread.sleep(forTimeInterval: 0.3)
+    check(recorder.lines.isEmpty, "nothing ran: \(recorder.lines)")
+    check(((try? FileManager.default.contentsOfDirectory(atPath: runtime.path)) ?? []).isEmpty, "no copy, config or key is left")
+}
+
+if let signedPath = ProcessInfo.processInfo.environment["HELPER_TESTS_SIGNED"],
+   let team = ProcessInfo.processInfo.environment["HELPER_TESTS_TEAM"] {
+    let signed = URL(fileURLWithPath: signedPath)
+
+    /// A copy of the signed binary, changed by `alter`.
+    func variant(_ name: String, _ alter: (URL) throws -> Void) throws -> URL {
+        let copy = root.appendingPathComponent(name)
+        try FileManager.default.copyItem(at: signed, to: copy)
+        try alter(copy)
+        return copy
+    }
+
+    func codesign(_ arguments: [String]) throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+        process.arguments = arguments
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+    }
+
+    func refused(_ url: URL) -> Bool {
+        (try? CodeSignature.verifyOpenFortiVpn(url, team: team)) == nil
+    }
+
+    test("the signature check accepts openfortivpn signed by the team, and an unchanged copy of it") {
+        try CodeSignature.verifyOpenFortiVpn(signed, team: team)
+        check(!refused(try variant("copy") { _ in }), "the helper checks a copy, which keeps the signature")
+    }
+
+    test("the signature check refuses another team, another identifier, ad hoc signing and altered code") {
+        check((try? CodeSignature.verifyOpenFortiVpn(signed, team: "ABCDE12345")) == nil, "another team is refused")
+        check(refused(try variant("other-identifier") { try codesign(["--force", "--sign", "-", "--identifier", "io.github.openforticlient.other", $0.path]) }),
+              "a different identifier is refused")
+        check(refused(try variant("ad-hoc") { try codesign(["--force", "--sign", "-", "--identifier", "io.github.openforticlient.openfortivpn", $0.path]) }),
+              "ad hoc signing with the right identifier is refused")
+        check(refused(try variant("unsigned") { try codesign(["--remove-signature", $0.path]) }), "an unsigned binary is refused")
+        check(refused(try variant("altered") { url in
+            var bytes = try Data(contentsOf: url)
+            bytes[0x1000] ^= 0xFF
+            try bytes.write(to: url)
+        }), "a changed byte in the signed code is refused")
+    }
+} else {
+    print("- (skipped: the signature check tests need Signing.local.props)")
 }
 
 test("refuses config keys that could run other programs as root") {

@@ -2,7 +2,8 @@
   <!--
     scripts/provision-signing.sh writes Signing.local.props (gitignored) for you; this file only
     shows its shape. Saved passwords need a signed build: see docs/development.md, "Code signing".
-    CodesignKey:       `security find-identity -v -p codesigning`
+    CodesignKey:       `security find-identity -v -p codesigning`: the SHA-1 hash, or the name in quotes
+                       (the hash if the name has non-ASCII characters: codesign cannot find those by name)
     CodesignProvision: the profile name Xcode created for io.github.openforticlient
   -->
   <PropertyGroup>

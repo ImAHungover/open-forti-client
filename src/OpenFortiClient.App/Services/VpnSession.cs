@@ -179,9 +179,12 @@ public sealed class VpnSession
     public Task ApplySettingsAsync(AppSettings settings)
     {
         _log.MinimumLevel = settings.LogLevel;
-        _engine.Options = OpenFortiVpnEngineOptions.From(settings, _paths);
+        _engine.Options = OpenFortiVpnEngineOptions.From(settings, _paths) with
+        {
+            ExecutablePath = ElevationLauncher.OpenFortiVpnPath(settings),
+        };
         _showBanners = settings.ShowSystemNotifications;
-        _elevation.UseHelper = settings.UsePrivilegedHelper;
+        _elevation.UseHelper = ElevationLauncher.UsesHelper(settings);
         _supervisor.Delays = settings.ReconnectDelaysSeconds is { Count: > 0 } seconds
             ? [.. seconds.Select(s => TimeSpan.FromSeconds(Math.Max(1, s)))]
             : ReconnectSupervisor.DefaultDelays;
