@@ -34,7 +34,7 @@
     <CodesignProvision></CodesignProvision>
     <!-- The test mode (Services/EndToEnd) exists only in this build, in Debug and Release alike. -->
     <DefineConstants>$(DefineConstants);E2E</DefineConstants>
-    <!-- Its obj/bin live under artifacts/e2e (Directory.Build.props); keep the normal build's out of the source globs. -->
+    <!-- Its obj/bin live under artifacts/e2e.noindex (Directory.Build.props); keep the normal build's out of the source globs. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
   </PropertyGroup>
 

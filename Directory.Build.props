@@ -8,9 +8,10 @@
   </PropertyGroup>
 
   <!-- The end-to-end test build of the app (-p:E2E=true) gets its own output folders, so it never
-       mixes with the normal build. Must be set here, before the SDK reads BaseIntermediateOutputPath. -->
+       mixes with the normal build. The .noindex suffix keeps Spotlight and Launchpad from listing the test app.
+       Must be set here, before the SDK reads BaseIntermediateOutputPath. -->
   <PropertyGroup Condition="'$(E2E)' == 'true' And '$(MSBuildProjectName)' == 'OpenFortiClient.App'">
-    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts/e2e/obj/</BaseIntermediateOutputPath>
-    <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts/e2e/bin/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts/e2e.noindex/obj/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts/e2e.noindex/bin/</BaseOutputPath>
   </PropertyGroup>
 </Project>

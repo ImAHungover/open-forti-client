@@ -306,11 +306,11 @@ public sealed class AppSession : IDisposable
 
     /// <summary>
     /// A screenshot of the app's window only (never the rest of the screen), to
-    /// artifacts/e2e/screens/&lt;name&gt;.png, for looking at the layout.
+    /// artifacts/e2e.noindex/screens/&lt;name&gt;.png, for looking at the layout.
     /// </summary>
     public void SaveScreenshot(string name)
     {
-        var folder = Path.Combine(RepositoryRoot(), "artifacts", "e2e", "screens");
+        var folder = Path.Combine(RepositoryRoot(), "artifacts", "e2e.noindex", "screens");
         System.IO.Directory.CreateDirectory(folder);
         var window = Driver.FindElement(MobileBy.AccessibilityId("SceneWindow"));
         window.GetScreenshot().SaveAsFile(Path.Combine(folder, $"{name}.png"));
@@ -321,7 +321,7 @@ public sealed class AppSession : IDisposable
     {
         try
         {
-            var folder = Path.Combine(RepositoryRoot(), "artifacts", "e2e", "failures");
+            var folder = Path.Combine(RepositoryRoot(), "artifacts", "e2e.noindex", "failures");
             System.IO.Directory.CreateDirectory(folder);
             var file = Path.Combine(folder, $"{DateTime.Now:HHmmss-fff}.xml");
             File.WriteAllText(file, Driver.PageSource);
@@ -362,7 +362,7 @@ public sealed class AppSession : IDisposable
     {
         // Debug, or Release with ./scripts/run-ui-tests.sh --release (catches trimming problems).
         var configuration = Environment.GetEnvironmentVariable("OPENFORTICLIENT_E2E_CONFIGURATION") is { Length: > 0 } c ? c : "Debug";
-        var bundle = Path.Combine(RepositoryRoot(), "artifacts", "e2e", "bin", configuration, "net10.0-maccatalyst", "maccatalyst-arm64", "OpenFortiClient E2E.app");
+        var bundle = Path.Combine(RepositoryRoot(), "artifacts", "e2e.noindex", "bin", configuration, "net10.0-maccatalyst", "maccatalyst-arm64", "OpenFortiClient E2E.app");
         return System.IO.Directory.Exists(bundle)
             ? bundle
             : throw new InvalidOperationException($"{bundle} is missing. Build it with ./scripts/run-ui-tests.sh, or: dotnet build src/OpenFortiClient.App -f net10.0-maccatalyst -p:E2E=true");

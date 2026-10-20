@@ -26,7 +26,7 @@ fi
 
 # Incremental builds are much faster, but can keep an old Info.plist in the bundle (docs/development.md):
 # rebuild from scratch only when Info.plist or the entitlements are newer than the built app.
-APP="$ROOT/artifacts/e2e/bin/$CONFIGURATION/net10.0-maccatalyst/maccatalyst-arm64/OpenFortiClient E2E.app"
+APP="$ROOT/artifacts/e2e.noindex/bin/$CONFIGURATION/net10.0-maccatalyst/maccatalyst-arm64/OpenFortiClient E2E.app"
 FULL=""
 for source in "$ROOT"/src/OpenFortiClient.App/Platforms/MacCatalyst/*.plist; do
     if [ ! -f "$APP/Contents/Info.plist" ] || [ "$source" -nt "$APP/Contents/Info.plist" ]; then

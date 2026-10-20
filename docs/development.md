@@ -174,7 +174,7 @@ OPENFORTICLIENT_E2E_KEEP=1 ./scripts/run-ui-tests.sh        # keep each test's f
 
 | Part                                                                          | What it does                                                                                                                                                                                                                                                                                                                                             |
 | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-p:E2E=true` build                                                         | A copy of the app with its own bundle ID, `io.github.openforticlient.e2e`, and its own output folder (`artifacts/e2e/`). It runs next to your normal app, even while that one is connected, and never touches its preferences. Unsigned.                                                                                                             |
+| `-p:E2E=true` build                                                         | A copy of the app with its own bundle ID, `io.github.openforticlient.e2e`, and its own output folder (`artifacts/e2e.noindex/`, which Spotlight and Launchpad skip). It runs next to your normal app, even while that one is connected, and never touches its preferences. Unsigned.                                                                                                             |
 | Test mode ([Services/EndToEnd](../src/OpenFortiClient.App/Services/EndToEnd/)) | Debug builds only. When `OPENFORTICLIENT_E2E_DIR` names a folder, the app keeps its data and logs there, stores passwords in a plain `secrets.txt` instead of the Keychain, and replaces openfortivpn with `ScriptedLauncher`. Release builds do not contain this code.                                                                            |
 | `system-notifications.log`, `secrets.txt`                                 | What the test build shows as macOS banners (`severity\|title\|body`) and saves as passwords, so tests can check both: `AppSession.SystemNotifications` and `AppSession.Secrets`                                                                                                                                                                      |
 | `network-change`                                                            | `Trigger("network-change")` makes the test build's network monitor report a change, which retries a waiting reconnect                                                                                                                                                                                                                                  |
@@ -196,9 +196,9 @@ app.WaitForText("ErrorLabel", "The connection to vpn1.example.com was lost.");
 
 **Speed.** Every Appium call costs 0.3 to 1.5 s on macOS, because XCTest waits for the app to be idle after each action; a test also starts a fresh app (about 3 s). So `AppSession` makes as few calls as it can: no "displayed" check per lookup, one attribute per text read (`label`, then `value`), and `Type` only clears a field with `replace: true`. Fixed waits are only for "nothing happens" checks, and kept short. Tests cannot run in parallel: they share the screen and keyboard. The run script rebuilds the test copy from scratch only when `Info.plist` or the entitlements changed.
 
-**Looking at the layout.** `app.SaveScreenshot("name")` saves the app's window (only the window, never the rest of the screen) to `artifacts/e2e/screens/name.png`; `BrandingTests` saves the Connect, About and Settings pages.
+**Looking at the layout.** `app.SaveScreenshot("name")` saves the app's window (only the window, never the rest of the screen) to `artifacts/e2e.noindex/screens/name.png`; `BrandingTests` saves the Connect, About and Settings pages.
 
-**When a test fails** on a missing element or text, the message names a file under `artifacts/e2e/failures/` with the accessibility tree of the screen at that moment: search it for the element, its `identifier` and its `title` or `label`.
+**When a test fails** on a missing element or text, the message names a file under `artifacts/e2e.noindex/failures/` with the accessibility tree of the screen at that moment: search it for the element, its `identifier` and its `title` or `label`.
 
 Things that behave differently on Mac Catalyst:
 
@@ -282,8 +282,8 @@ These look odd on their own, so here is why each one exists.
 ### The UI tests
 
 - Keep a test's folder (scenario, app log, profiles, secrets) with `OPENFORTICLIENT_E2E_KEEP=1`.
-- A failed wait saves the screen's accessibility tree to `artifacts/e2e/failures/`.
-- `SaveScreenshot` saves the window to `artifacts/e2e/screens/`.
+- A failed wait saves the screen's accessibility tree to `artifacts/e2e.noindex/failures/`.
+- `SaveScreenshot` saves the window to `artifacts/e2e.noindex/screens/`.
 - Appium's own log: start `appium --log-level debug --log-timestamp` yourself before the tests. The fixture reuses a running server.
 - Before running tests, quit any test copy you started by hand: a running copy with the same bundle ID makes Appium wait for ever (the tests also close leftovers themselves).
 
