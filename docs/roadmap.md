@@ -10,8 +10,8 @@ Status words: **Done**; **Next**: planned, in this order; **TBC**, to be confirm
 
 | # | Item | Status | What |
 |---|---|---|---|
-| 1 | **macOS VPN services: status, on/off, keep it up** | **Done** (unreleased) | The VPN services set up in System Settings (the company L2TP VPN in [vision.md](vision.md)) on the Connect page and in the menu bar: their state, an On switch, and *Keep it up* (start with the app, reconnect after a drop). The services stay macOS's own. See [architecture.md](architecture.md#macos-vpn-services) |
-| 2 | **Edit macOS VPN settings** | **Done** (unreleased) | Server, account, password, shared secret, *send all traffic* and PPP keep-alive of an L2TP service, from the app, through the privileged helper with typed values and an allowlist; secrets changed in place in the System keychain. See [architecture.md](architecture.md#macos-vpn-services) |
+| 1 | **macOS VPN services: status, on/off, keep it up** | **Done** (1.1.0) | The VPN services set up in System Settings (the company L2TP VPN in [vision.md](vision.md)) on the Connect page and in the menu bar: their state, an On switch, and *Keep it up* (start with the app, reconnect after a drop). The services stay macOS's own. See [architecture.md](architecture.md#macos-vpn-services) |
+| 2 | **Edit macOS VPN settings** | **Done** (1.1.0) | Server, account, password, shared secret, *send all traffic* and PPP keep-alive of an L2TP service, from the app, through the privileged helper with typed values and an allowlist; secrets changed in place in the System keychain. See [architecture.md](architecture.md#macos-vpn-services) |
 | — | *Connect first* (a hidden chaining step) | **Dropped** (2026-10-20) | Replaced by the visible on/off and *Keep it up* above: the user wanted to see and switch the L2TP VPN, not have it switched behind the scenes |
 | 3 | **IPsec spike** | **Parked** (2026-10-20) | Done without a gateway: a Developer ID app can drive macOS's IKEv2 client (`NEVPNManager`); no IPsec over TCP 443; IKE follows the route into the L2TP VPN but falls back to the physical interface after a network error. The rest needs an IPsec gateway and a test account: the gateway in [vision.md](vision.md) stays on SSL VPN for now. Plan and results: [ipsec-spike.md](ipsec-spike.md) |
 | 4 | **IPsec engine** | After the spike | Most likely macOS's client through `NEVPNManager`, as a second engine behind `IVpnEngine`; strongSwan if the spike rules that out. The spike's decision table says which |
@@ -44,6 +44,7 @@ OpenFortiClient supports what openfortivpn supports: **Fortinet SSL-VPN** in tun
 | Notarised DMG and Homebrew cask | **Done** (2026-10-20) | Phase 4b, [release.md](release.md): v1.0.0 on GitHub Releases and in `ImAHungover/homebrew-tap` |
 | openfortivpn bundled in the app | **Done** (2026-10-19) | Built from pinned sources with a static OpenSSL 3.5 LTS; the helper runs only a signature-checked copy |
 | Intel Macs (universal build) | **TBC** | Build the Swift parts and the bundled openfortivpn for `x86_64` too, and `lipo` them |
+| Re-register the helper after an update | **TBC** | After an update the old helper process keeps running until the helper is removed and installed again (release notes of 1.1.0 ask users to do it). The app could notice a new version at start and re-register it by itself |
 | Start at login (`SMAppService.mainApp`) | **TBC** | Left out of phase 3 on purpose; pairs with auto-connect |
 | Native Mac look ("Optimize for Mac" instead of the scaled iPad look) | **TBD** | Larger text and Mac controls; changes every page's layout |
 | Light theme | **TBD** | The ResultLab look is dark only today |

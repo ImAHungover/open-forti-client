@@ -12,8 +12,8 @@
 
     <ApplicationTitle>OpenFortiClient</ApplicationTitle>
     <ApplicationId>io.github.openforticlient</ApplicationId>
-    <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
-    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>2</ApplicationVersion>
 
     <!-- Mac Catalyst 17 = macOS 14 Sonoma, the lowest the .NET 10 Mac Catalyst SDK accepts -->
     <SupportedOSPlatformVersion>17.0</SupportedOSPlatformVersion>

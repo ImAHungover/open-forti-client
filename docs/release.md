@@ -2,7 +2,7 @@
 
 How to publish OpenFortiClient: a **signed and notarised DMG** on GitHub Releases that anyone can download and open without warnings, and a **Homebrew cask** (`brew install --cask imahungover/tap/openforticlient`).
 
-Status (2026-10-20): **v1.0.0 released.** [GitHub release](https://github.com/ImAHungover/open-forti-client/releases/tag/v1.0.0), [tap](https://github.com/ImAHungover/homebrew-tap).
+Status (2026-10-21): **v1.1.0 released** (macOS VPN services and their settings; v1.0.0 on 2026-10-20). [GitHub releases](https://github.com/ImAHungover/open-forti-client/releases), [tap](https://github.com/ImAHungover/homebrew-tap).
 
 | Part | State |
 |---|---|

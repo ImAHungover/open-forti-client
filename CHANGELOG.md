@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 (2026-10-21)
 
 - **macOS VPN** (macOS only): the VPN services set up in System Settings (L2TP, Cisco IPSec, PPTP), such as a company L2TP VPN the gateway is reached through, appear on the Connect page and in the menu bar. They show their status (since when, which address), switch on and off, and can be kept up: started with the app and reconnected after a drop, with the same backoff as *Always up*. Quitting the app leaves them running.
 - **Edit a macOS L2TP VPN** (macOS only): server, account, password, shared secret, *Send all traffic* and the keep-alive that decides how fast a dead connection is noticed, saved into the System Settings VPN through the privileged helper. The password and shared secret are never shown; left empty, they stay as saved.

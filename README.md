@@ -135,7 +135,7 @@ docs/
 
 ## Project status
 
-As of 2026-10-20: **version 1.0.0 is released** ([download](https://github.com/ImAHungover/open-forti-client/releases/tag/v1.0.0), or `brew install --cask imahungover/tap/openforticlient`). The Mac app connects to a real FortiGate through openfortivpn, routed through the company L2TP VPN as intended. Connections, saved passwords, several gateways with failover, the certificate prompt, notifications, automatic reconnect ("always up"), auto-connect and the menu bar icon all work and are covered by unit tests and end-to-end UI tests.
+As of 2026-10-21: **version 1.1.0 is released** ([download](https://github.com/ImAHungover/open-forti-client/releases/latest), or `brew install --cask imahungover/tap/openforticlient`). The Mac app connects to a real FortiGate through openfortivpn, routed through the company L2TP VPN as intended. Connections, saved passwords, several gateways with failover, the certificate prompt, notifications, automatic reconnect ("always up"), auto-connect and the menu bar icon all work and are covered by unit tests and end-to-end UI tests.
 
 Phase 4b, the public release, is done: the app is signed with Developer ID and notarised, bundles openfortivpn built from pinned sources, and the helper runs only that signed copy. CI runs the Core and helper tests on every push. How to build the next release: [docs/release.md](docs/release.md).
 
@@ -149,7 +149,7 @@ Phase 4b, the public release, is done: the app is signed with Developer ID and n
 | 3. Comfort | Menu bar icon, auto-connect, reconnect on network change, backup and restore | ✅ Done (2026-10-17): always up with backoff and retry on network change, auto-connect at start, menu bar icon (the app keeps running when its window closes), backup and restore. Start at login is left for later |
 | 4. Polish and release (free tier) | `SMAppService` privileged helper, client private key in the Keychain, release build, install script, licence | ✅ Done (2026-10-18). Release builds use the helper; the sudoers rule is for development builds only. Version 1.0.0, MIT |
 | 4b. Public release | Developer ID signing and notarisation, Homebrew cask, GitHub repository and releases, a verified openfortivpn inside the app | ✅ Done (2026-10-20): v1.0.0 notarised on GitHub Releases and in the `imahungover/tap` cask. Runbook: [docs/release.md](docs/release.md) |
-| Next | macOS VPN services (status, on/off, keep it up, editing L2TP settings: done, unreleased); IPsec once a gateway is available to test (spike parked) | [docs/roadmap.md](docs/roadmap.md#next-up), [docs/ipsec-spike.md](docs/ipsec-spike.md) |
+| Next | macOS VPN services (status, on/off, keep it up, editing L2TP settings: done in 1.1.0); IPsec once a gateway is available to test (spike parked) | [docs/roadmap.md](docs/roadmap.md#next-up), [docs/ipsec-spike.md](docs/ipsec-spike.md) |
 | Later | More connection types (SAML, …) and other improvements | TBC/TBD: [docs/roadmap.md](docs/roadmap.md) |
 | 5. Decide on the engine | Keep openfortivpn, or build our own implementation | Not started (after phase 3) |
 

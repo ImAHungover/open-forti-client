@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace OpenFortiClient.App.UiTests;
 
 /// <summary>OpenFortiClient as a ResultLab open-source product: logo, product line, licence.</summary>
@@ -17,12 +19,19 @@ public sealed class BrandingTests
         app.Titled("About").Click();
         app.WaitForText("AboutProduct", "A ResultLab open-source product");
         app.WaitForText("AboutLicense", "MIT License. Copyright © 2026 ResultLab.");
-        app.WaitForText("AboutVersion", "Version 1.0.0");
+        app.WaitForText("AboutVersion", $"Version {AppVersion()}");
         app.Element("ResultLabProductsButton");
         app.SaveScreenshot("about");
 
         app.Titled("Settings").Click();
         app.Element("HelperStatusLabel");
         app.SaveScreenshot("settings");
+    }
+
+    /// <summary>The version the app is built with (ApplicationDisplayVersion), so a release needs no test change.</summary>
+    private static string AppVersion()
+    {
+        var csproj = File.ReadAllText(Path.Combine(AppSession.RepositoryRoot(), "src", "OpenFortiClient.App", "OpenFortiClient.App.csproj"));
+        return Regex.Match(csproj, "<ApplicationDisplayVersion>(.+?)</ApplicationDisplayVersion>").Groups[1].Value;
     }
 }

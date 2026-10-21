@@ -350,7 +350,7 @@ public sealed class AppSession : IDisposable
         return File.Exists(path) ? File.ReadAllLines(path) : [];
     }
 
-    private static string RepositoryRoot()
+    internal static string RepositoryRoot()
     {
         var root = AppContext.BaseDirectory;
         while (!File.Exists(Path.Combine(root, "OpenFortiClient.slnx")))
