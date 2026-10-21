@@ -87,6 +87,84 @@ public sealed class SystemVpnTests
         Assert.Equal([$"start {Id}"], AppSession.WaitForLines(() => app.SystemVpnCalls, 1));
     }
 
+    [Fact]
+    [Trait("Suite", "Quick")]
+    public void Edits_the_L2TP_settings_through_the_helper()
+    {
+        using var app = Start(connected: false);
+        InstallHelper(app);
+        app.Tap("SystemVpnEditButton");
+        app.WaitForText("SystemVpnServerEntry", "vpn.example.com");
+
+        app.Type("SystemVpnServerEntry", "vpn2.example.com", replace: true);
+        app.Type("SystemVpnPasswordEntry", "n3w-pass");
+        app.Type("SystemVpnEchoIntervalEntry", "10", replace: true);
+        app.Type("SystemVpnEchoFailuresEntry", "3", replace: true);
+        app.WaitForText("SystemVpnDeadAfterLabel", "noticed after 30 s");
+        app.Tap("SystemVpnSaveButton");
+
+        app.WaitForText("SystemVpnStatus", "Not connected");
+        var saved = Assert.Single(AppSession.WaitForLines(() => app.SystemVpnCalls, 1));
+        Assert.Equal($"save {Id} vpn2.example.com user all=True echo=10x3 password=*** secret=kept", saved);
+        Assert.DoesNotContain("n3w-pass", string.Join("\n", app.AppLog));
+    }
+
+    [Fact]
+    public void Saving_without_the_helper_says_how_to_install_it()
+    {
+        using var app = Start(connected: false);
+        app.Tap("SystemVpnEditButton");
+        app.WaitForText("SystemVpnServerEntry", "vpn.example.com");
+
+        app.Tap("SystemVpnSaveButton");
+
+        app.WaitForText("SystemVpnEditError", "Install and allow it under Settings → Privileged helper.");
+        Assert.Empty(app.SystemVpnCalls);
+    }
+
+    [Fact]
+    public void Refuses_a_bad_server_before_sending_it()
+    {
+        using var app = Start(connected: false);
+        InstallHelper(app);
+        app.Tap("SystemVpnEditButton");
+        app.WaitForText("SystemVpnServerEntry", "vpn.example.com");
+
+        app.Type("SystemVpnServerEntry", "vpn.example.com; rm -rf /", replace: true);
+        app.Tap("SystemVpnSaveButton");
+
+        app.WaitForText("SystemVpnEditError", "Server address must be a host name or an IP address.");
+        Assert.Empty(app.SystemVpnCalls);
+    }
+
+    [Fact]
+    public void Saving_while_connected_offers_to_reconnect()
+    {
+        using var app = Start(connected: true);
+        InstallHelper(app);
+        app.Tap("SystemVpnEditButton");
+        app.WaitForText("SystemVpnServerEntry", "vpn.example.com");
+
+        app.Tap("SystemVpnSendAllSwitch");
+        app.Tap("SystemVpnSaveButton");
+        app.WaitForText("SystemVpnSavedLabel", "uses the new settings from its next connect");
+        app.Tap("SystemVpnReconnectButton");
+
+        app.WaitForText("SystemVpnStatus", "Connected since");
+        Assert.Equal([$"stop {Id}", $"start {Id}"], AppSession.WaitForLines(() => app.SystemVpnCalls, 3).Where(l => !l.StartsWith("save", StringComparison.Ordinal)));
+    }
+
+    /// <summary>Installs and approves the (fake) privileged helper, then returns to the Connect page.</summary>
+    private static void InstallHelper(AppSession app)
+    {
+        app.Titled("Settings").Click();
+        app.Tap("HelperInstallButton");
+        app.Trigger("helper-approve");
+        app.Tap("HelperRefreshButton");
+        app.WaitForText("HelperStatusLabel", "Installed and allowed.");
+        app.Titled("Connect").Click();
+    }
+
     private static AppSession Start(bool connected, bool keepUp = false, Action<string>? beforeLaunch = null) =>
         AppSession.Start(
             new Scenario(),

@@ -20,4 +20,9 @@ public sealed class NoSystemVpns : ISystemVpns
     public Task<string?> StartAsync(string id) => Task.FromResult<string?>("macOS VPN services are only available on macOS.");
 
     public Task<string?> StopAsync(string id) => Task.FromResult<string?>(null);
+
+    public SystemVpnSettings? Settings(string id) => null;
+
+    public Task<string?> SaveSettingsAsync(string id, SystemVpnSettingsChange change) =>
+        Task.FromResult<string?>("macOS VPN services are only available on macOS.");
 }

@@ -94,8 +94,11 @@
     <CallTarget Targets="BuildNativeLibrary;BuildHelper;SignOpenFortiVpn" />
   </Target>
 
-  <Target Name="BuildNativeLibrary" Inputs="@(NativeSource);$(NativeBuildConfig)" Outputs="$(NativeLibrary)">
+  <!-- Signed here, like the helper: the SDK's own signing of MonoBundle libraries is skipped when its stamp in
+       obj/ says done, which left the library ad hoc and failed notarisation (2026-10-21). -->
+  <Target Name="BuildNativeLibrary" Inputs="@(NativeSource);$(NativeBuildConfig);$(NativeSigningStamp)" Outputs="$(NativeLibrary)">
     <Exec Command="xcrun swiftc -target $(SwiftTarget) -emit-library -module-name OFCNative -O -o &quot;$(NativeLibrary)&quot; @(NativeSource->'&quot;%(FullPath)&quot;', ' ') &quot;$(NativeBuildConfig)&quot;" />
+    <Exec Command="codesign --force --options runtime $(NativeTimestamp) --sign &quot;$(CodesignKey)&quot; &quot;$(NativeLibrary)&quot;" Condition="'$(CodesignKey)' != ''" />
   </Target>
 
   <Target Name="BuildHelper" Inputs="@(HelperSource);$(NativeBuildConfig);$(NativeSigningStamp)" Outputs="$(HelperExecutable)">

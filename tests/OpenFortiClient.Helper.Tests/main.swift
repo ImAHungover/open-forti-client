@@ -242,6 +242,68 @@ test("refuses a second start on the same connection") {
     _ = recorder.waitFor { $0.exitCode != nil }
 }
 
+// MARK: VPN settings (VpnSettingsWriter): the checks and merges, without root
+
+let validRequest = VpnSettingsRequest(
+    serviceId: "7A1C2E44-5B6D-4F80-9A3B-2C4D5E6F7081", server: "vpn.example.com", account: "user",
+    sendAllTraffic: true, echoInterval: 10, echoFailures: 3, password: "s3cret-value", sharedSecret: nil)
+
+func refused(_ request: VpnSettingsRequest) -> String? {
+    do {
+        try VpnSettingsWriter.check(request)
+        return nil
+    } catch {
+        return "\(error)"
+    }
+}
+
+test("accepts valid VPN settings") {
+    check(refused(validRequest) == nil, "valid settings must pass")
+}
+
+test("refuses VPN settings that are not plain values") {
+    func with(_ change: (inout [String: Any]) -> Void) -> VpnSettingsRequest {
+        var v: [String: Any] = ["id": validRequest.serviceId, "server": validRequest.server, "account": validRequest.account,
+                                "interval": validRequest.echoInterval, "failures": validRequest.echoFailures, "password": validRequest.password as Any]
+        change(&v)
+        return VpnSettingsRequest(
+            serviceId: v["id"] as! String, server: v["server"] as! String, account: v["account"] as! String, sendAllTraffic: true,
+            echoInterval: v["interval"] as! Int, echoFailures: v["failures"] as! Int, password: v["password"] as? String, sharedSecret: nil)
+    }
+
+    check(refused(with { $0["id"] = "../../etc/passwd" }) != nil, "a service ID that is not a UUID")
+    check(refused(with { $0["server"] = "" }) != nil, "an empty server")
+    check(refused(with { $0["server"] = "vpn.example.com; rm -rf /" }) != nil, "a server with shell characters")
+    check(refused(with { $0["account"] = "user\nAuthPassword=x" }) != nil, "an account with a newline")
+    check(refused(with { $0["interval"] = 4 }) != nil, "a keep-alive interval below 5 s")
+    check(refused(with { $0["failures"] = 31 }) != nil, "more than 30 keep-alive failures")
+    check(refused(with { $0["password"] = "a\0b" }) != nil, "a password with NUL")
+}
+
+test("never puts a secret into an error") {
+    let bad = VpnSettingsRequest(
+        serviceId: validRequest.serviceId, server: "", account: "user", sendAllTraffic: true,
+        echoInterval: 10, echoFailures: 3, password: "s3cret-value", sharedSecret: "shared-value")
+    let message = refused(bad) ?? ""
+    check(!message.contains("s3cret-value") && !message.contains("shared-value"), "the error must not contain a secret: \(message)")
+}
+
+test("changes only the allowed VPN settings and keeps the rest") {
+    let current: [String: Any] = ["CommRemoteAddress": "old.example.com", "AuthName": "old", "AuthPassword": "ITEM",
+                                  "AuthPasswordEncryption": "Keychain", "LCPEchoInterval": 20, "LCPEchoFailure": 15,
+                                  "DisconnectOnLogout": 1, "Logfile": "/var/log/ppp.log"]
+    let ppp = VpnSettingsWriter.mergedPpp(current, validRequest)
+    check(ppp["CommRemoteAddress"] as? String == "vpn.example.com", "server")
+    check(ppp["AuthName"] as? String == "user", "account")
+    check(ppp["LCPEchoInterval"] as? Int == 10 && ppp["LCPEchoFailure"] as? Int == 3 && ppp["LCPEchoEnabled"] as? Int == 1, "keep-alive")
+    check(ppp["AuthPassword"] as? String == "ITEM" && ppp["AuthPasswordEncryption"] as? String == "Keychain", "the password stays a keychain reference")
+    check(ppp["DisconnectOnLogout"] as? Int == 1 && ppp["Logfile"] as? String == "/var/log/ppp.log", "other settings stay")
+    check(ppp.count == current.count + 1, "only LCPEchoEnabled is added")
+
+    let ipv4 = VpnSettingsWriter.mergedIpv4(["ConfigMethod": "PPP", "OverridePrimary": 0], validRequest)
+    check(ipv4["OverridePrimary"] as? Int == 1 && ipv4["ConfigMethod"] as? String == "PPP", "send all traffic, nothing else")
+}
+
 try? FileManager.default.removeItem(at: root)
 print(failures == 0 ? "Helper tests passed." : "Helper tests: \(failures) failure(s).")
 exit(failures == 0 ? 0 : 1)

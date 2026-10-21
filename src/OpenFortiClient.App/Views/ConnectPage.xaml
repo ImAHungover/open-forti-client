@@ -74,6 +74,9 @@
                                     <HorizontalStackLayout Spacing="8">
                                         <Label AutomationId="SystemVpnName" Text="{Binding Name}" FontAttributes="Bold" VerticalOptions="Center" />
                                         <Label Text="{Binding Kind}" Style="{StaticResource Muted}" VerticalOptions="Center" />
+                                        <Button AutomationId="SystemVpnEditButton" Text="Edit…" Style="{StaticResource SecondaryButton}"
+                                                IsVisible="{Binding CanEdit}" Command="{Binding EditCommand}"
+                                                ToolTipProperties.Text="Change this VPN's settings in System Settings" />
                                     </HorizontalStackLayout>
                                     <Label AutomationId="SystemVpnStatus" Grid.Row="1" Text="{Binding StatusText}" Style="{StaticResource Muted}" />
                                     <Switch AutomationId="SystemVpnSwitch" Grid.RowSpan="2" Grid.Column="1" IsToggled="{Binding IsOn}"

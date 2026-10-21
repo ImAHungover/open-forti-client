@@ -31,6 +31,7 @@ public sealed class SystemVpnSession
     private readonly INotificationHistory _notifications;
     private readonly IAppLog _log;
     private readonly ISystemNotifier _notifier;
+    private readonly IHelperControl _helper;
     private readonly Lock _lock = new();
     private IReadOnlyList<Entry> _entries = [];
     private HashSet<string> _keepUp = [];
@@ -43,8 +44,10 @@ public sealed class SystemVpnSession
         INotificationHistory notifications,
         IAppLog log,
         ISystemNotifier notifier,
-        INetworkMonitor network)
+        INetworkMonitor network,
+        IHelperControl helper)
     {
+        _helper = helper;
         _vpns = vpns;
         _settings = settings;
         _notifications = notifications;
@@ -199,6 +202,58 @@ public sealed class SystemVpnSession
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>The service's editable settings (L2TP only), or null.</summary>
+    public SystemVpnSettings? Settings(string id) => Find(id) is null ? null : _vpns.Settings(id);
+
+    /// <summary>
+    /// Saves the settings into the macOS service through the privileged helper: checked here first, then by
+    /// the helper. A connected service uses them from its next connect.
+    /// </summary>
+    /// <returns>Null if saved; otherwise what to tell the user.</returns>
+    public async Task<string?> SaveSettingsAsync(string id, SystemVpnSettingsChange change)
+    {
+        if (Find(id) is not { } entry)
+        {
+            return "This VPN is no longer set up in System Settings.";
+        }
+
+        if (change.Validate() is { Count: > 0 } problems)
+        {
+            return string.Join(" ", problems);
+        }
+
+        if (_helper.Status != HelperStatus.Enabled)
+        {
+            return "Changing a macOS VPN needs the privileged helper. Install and allow it under Settings → Privileged helper.";
+        }
+
+        var error = await _vpns.SaveSettingsAsync(id, change);
+        if (error is null)
+        {
+            await AddToHistoryAsync(new NotificationEntry(DateTimeOffset.Now, "macOS VPN", $"Settings of {entry.Connection.Service.Name} changed."));
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        return error;
+    }
+
+    /// <summary>Disconnects and connects again, so the service uses its new settings.</summary>
+    public async Task ReconnectAsync(string id)
+    {
+        if (Find(id) is not { } entry)
+        {
+            return;
+        }
+
+        await RunAsync(entry.Connection.DisconnectAsync);
+        for (var i = 0; i < 50 && entry.Connection.Current.Status != SystemVpnStatus.Disconnected; i++)
+        {
+            await Task.Delay(200);
+        }
+
+        await SetOnAsync(id, on: true);
     }
 
     public Task ApplySettingsAsync(AppSettings settings)

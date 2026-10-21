@@ -54,6 +54,58 @@ public final class OFCHelperClient: NSObject, OFCHelperClientProtocol {
         return failure as NSString?
     }
 
+    /// Changes a macOS L2TP VPN service's settings through the helper (VpnSettingsWriter). Keys: serviceId,
+    /// server, account (String), sendAllTraffic (Bool), echoInterval, echoFailures (NSNumber), password and
+    /// sharedSecret (String, optional: missing keeps the saved one). Blocks until the helper answered; returns
+    /// nil when saved, otherwise why not. Its own short connection, separate from a running openfortivpn.
+    @objc public func writeVpnSettings(_ request: NSDictionary) -> NSString? {
+        let connection = NSXPCConnection(machServiceName: helperMachServiceName, options: .privileged)
+        connection.remoteObjectInterface = NSXPCInterface(with: OFCHelperProtocol.self)
+        if !helperTeamIdentifier.isEmpty {
+            connection.setCodeSigningRequirement(
+                "identifier \"io.github.openforticlient.helper\" and anchor apple generic and certificate leaf[subject.OU] = \"\(helperTeamIdentifier)\"")
+        }
+
+        connection.resume()
+        defer { connection.invalidate() }
+
+        // Wait at most 20 s: a helper that macOS will not start (for example a build that is not notarised)
+        // never answers, and the app must say so instead of waiting forever.
+        let answered = DispatchSemaphore(value: 0)
+        let lock = NSLock()
+        var failure: String?
+        func finish(_ result: String?) {
+            lock.lock()
+            failure = result
+            lock.unlock()
+            answered.signal()
+        }
+
+        let helper = connection.remoteObjectProxyWithErrorHandler { error in
+            finish("The privileged helper is not available (\(error.localizedDescription)). Install it under Settings → Privileged helper.")
+        } as? OFCHelperProtocol
+
+        helper?.writeVpnSettings(
+            serviceId: request["serviceId"] as? String ?? "",
+            server: request["server"] as? String ?? "",
+            account: request["account"] as? String ?? "",
+            sendAllTraffic: request["sendAllTraffic"] as? Bool ?? false,
+            echoInterval: (request["echoInterval"] as? NSNumber)?.intValue ?? 0,
+            echoFailures: (request["echoFailures"] as? NSNumber)?.intValue ?? 0,
+            password: request["password"] as? String,
+            sharedSecret: request["sharedSecret"] as? String) { error in
+            finish(error)
+        }
+
+        if answered.wait(timeout: .now() + 20) == .timedOut {
+            return "The privileged helper did not answer. Remove and install it again under Settings → Privileged helper; if that does not help, see the app log."
+        }
+
+        lock.lock()
+        defer { lock.unlock() }
+        return failure as NSString?
+    }
+
     @objc public func write(_ line: NSString) {
         (connection?.remoteObjectProxy as? OFCHelperProtocol)?.write(line: line as String)
     }

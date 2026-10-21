@@ -34,6 +34,10 @@ internal sealed class FakeSystemVpns : ISystemVpns
         return Task.FromResult<string?>(null);
     }
 
+    public SystemVpnSettings? Settings(string id) => new("vpn.example.com", "user", true, 20, 15);
+
+    public Task<string?> SaveSettingsAsync(string id, SystemVpnSettingsChange change) => Task.FromResult<string?>(null);
+
     /// <summary>What macOS reports next.</summary>
     public void Set(SystemVpnStatus status, int? lastCause = null)
     {

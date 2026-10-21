@@ -57,6 +57,13 @@ public interface ISystemVpns
 
     /// <returns>Null if macOS stopped it; otherwise why not.</returns>
     Task<string?> StopAsync(string id);
+
+    /// <summary>The service's editable settings; null if it cannot be edited here (only L2TP can).</summary>
+    SystemVpnSettings? Settings(string id);
+
+    /// <summary>Saves the settings into the macOS service (needs root: the privileged helper).</summary>
+    /// <returns>Null if saved; otherwise why not.</returns>
+    Task<string?> SaveSettingsAsync(string id, SystemVpnSettingsChange change);
 }
 
 /// <summary>How a macOS VPN service went down, read from its LastCause.</summary>

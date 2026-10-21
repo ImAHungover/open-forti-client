@@ -114,6 +114,8 @@ public static class MauiProgram
         services.AddTransient<ConnectPage>();
         services.AddTransient<ConnectionEditViewModel>();
         services.AddTransient<ConnectionEditPage>();
+        services.AddTransient<SystemVpnEditViewModel>();
+        services.AddTransient<SystemVpnEditPage>();
         services.AddSingleton<SettingsViewModel>();
         services.AddTransient<SettingsPage>();
         services.AddSingleton<NotificationsViewModel>();

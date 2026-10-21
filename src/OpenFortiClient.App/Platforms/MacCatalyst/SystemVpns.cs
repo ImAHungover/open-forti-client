@@ -74,6 +74,62 @@ public sealed class SystemVpns : NSObject, ISystemVpns
 
     public Task<string?> StopAsync(string id) => Task.Run(() => Call("stop:", id));
 
+    public SystemVpnSettings? Settings(string id)
+    {
+        if (_native.Value is not { } native)
+        {
+            return null;
+        }
+
+        using var argument = new NSString(id);
+        if (NativeBridge.CallForObject<NSDictionary>(native, "settings:", argument) is not { } info)
+        {
+            return null;
+        }
+
+        return new SystemVpnSettings(
+            Text(info, "server") ?? "",
+            Text(info, "account") ?? "",
+            info["sendAllTraffic"] is NSNumber all && all.BoolValue,
+            info["echoInterval"] is NSNumber interval ? interval.Int32Value : 20,
+            info["echoFailures"] is NSNumber failures ? failures.Int32Value : 15);
+    }
+
+    /// <summary>Through the privileged helper (root), with its own short connection.</summary>
+    public Task<string?> SaveSettingsAsync(string id, SystemVpnSettingsChange change) => Task.Run(() =>
+    {
+        if (NativeBridge.Create("OFCHelperClient", out var error) is not { } client)
+        {
+            return error ?? "The privileged helper is not available in this build.";
+        }
+
+        var settings = change.Settings;
+        var request = new NSMutableDictionary
+        {
+            ["serviceId"] = new NSString(id),
+            ["server"] = new NSString(settings.Server),
+            ["account"] = new NSString(settings.Account),
+            ["sendAllTraffic"] = NSNumber.FromBoolean(settings.SendAllTraffic),
+            ["echoInterval"] = NSNumber.FromInt32(settings.EchoIntervalSeconds),
+            ["echoFailures"] = NSNumber.FromInt32(settings.EchoFailures),
+        };
+        if (change.Password is { } password)
+        {
+            request["password"] = new NSString(password);
+        }
+
+        if (change.SharedSecret is { } secret)
+        {
+            request["sharedSecret"] = new NSString(secret);
+        }
+
+        var failure = NativeBridge.CallForString(client, "writeVpnSettings:", request);
+
+        // Never the values: the request holds secrets.
+        _log.Info(LogSource, $"Save settings of {id}: {failure ?? "ok"}{(change.Password is null ? "" : ", new password")}{(change.SharedSecret is null ? "" : ", new shared secret")}");
+        return failure;
+    });
+
     /// <summary>From OFCSystemVpns, on its own queue.</summary>
     [Export("systemVpnChanged:")]
     public void SystemVpnChanged(NSDictionary info)

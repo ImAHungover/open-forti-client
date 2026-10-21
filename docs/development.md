@@ -84,7 +84,12 @@ sudo launchctl print system/io.github.openforticlient.helper | head   # register
 ps -o pid,user,ppid,command -C openfortivpn                          # while connected: runs as root
 ```
 
-Remove it with Settings → Privileged helper → Remove, or `./scripts/install.sh --uninstall`. After a rebuild with a new signature, remove and install it again if it stops answering.
+Remove it with Settings → Privileged helper → Remove, or `./scripts/install.sh --uninstall`.
+
+**Testing a new helper** (learned 2026-10-21):
+- **Developer ID builds must be notarised**, or macOS refuses to start the helper as root: the system log says `OS_REASON_CODESIGNING | Launch Constraint Violation`, launchd retries every 10 s (`last exit code = 78: EX_CONFIG`), and the app's helper calls time out. Builds signed with your Apple Development certificate run without notarisation. For a quick test of a Developer ID build, notarise the app itself: `ditto -c -k --keepParent <app> app.zip`, `xcrun notarytool submit app.zip --keychain-profile openforticlient-notary --wait`, `xcrun stapler staple <app>`.
+- **After installing a new build, Remove and Install the helper.** launchd keeps the running helper process, so the old code keeps answering until the service is registered again. Check with `ps -o lstart -p $(pgrep -f OpenFortiClientHelper)`: it must have started after the install.
+- `scripts/test-helper.sh` builds with `-O`, as the helper is: an optimiser difference once let a check pass in the tests that failed in the helper.
 
 ### Code signing
 
@@ -156,7 +161,7 @@ To update it, change the version and SHA-256 in the script (`brew info --json=v2
 |---|---|---|
 | [OpenFortiClient.Core.Tests](../tests/OpenFortiClient.Core.Tests/) | Engine state machine, output parsing, config files, stores | `dotnet test OpenFortiClient.Core.slnf` (seconds, no Xcode needed) |
 | [OpenFortiClient.Helper.Tests](../tests/OpenFortiClient.Helper.Tests/) | The helper's session logic: only the bundled openfortivpn, run from a checked private copy, allowed config keys, 0600 files and when they go, output, OTP, SIGTERM. And its signature check against signed, ad hoc, unsigned and altered binaries (needs `Signing.local.props`, otherwise skipped) | `./scripts/test-helper.sh` (seconds, no root) |
-| [OpenFortiClient.App.UiTests](../tests/OpenFortiClient.App.UiTests/) | The real app, end to end, driven through its UI | `./scripts/run-ui-tests.sh --quick` (13 tests, one per main flow, about 2 minutes) while working; `./scripts/run-ui-tests.sh` (all 53, about 10 minutes) before a release; `--release` runs against a trimmed Release build |
+| [OpenFortiClient.App.UiTests](../tests/OpenFortiClient.App.UiTests/) | The real app, end to end, driven through its UI | `./scripts/run-ui-tests.sh --quick` (14 tests, one per main flow, about 2 minutes) while working; `./scripts/run-ui-tests.sh` (all 57, about 11 minutes) before a release; `--release` runs against a trimmed Release build |
 
 ### End-to-end UI tests
 

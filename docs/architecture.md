@@ -149,6 +149,8 @@ openfortivpn must run as root because it starts `pppd` and changes routes and DN
 start(executable, config, clientKey, promptMarkers) → nil or the reason it refused
 write(line)     // the OTP
 terminate()     // SIGTERM
+writeVpnSettings(serviceId, server, account, sendAllTraffic, echoInterval, echoFailures, password?, sharedSecret?)
+                → nil or the reason it refused   // an L2TP service's settings, see "macOS VPN services"
 → output(line), exited(code)   reported back to the app
 ```
 
@@ -161,6 +163,7 @@ Its checks:
 | Only known config keys | host, port, username, password, realm, trusted-cert, user-cert, user-key, set-dns, set-routes. Anything else (`pppd-plugin`, `pppd-call`, …) is refused, because it could make root run another program |
 | Secrets stay root-only | The config and client key are written as 0600 files under `/var/run/openforticlient` (0700, root). The config goes at openfortivpn's first output line; the key when openfortivpn exits, because openfortivpn loads it again for every TLS connection |
 | Nothing is left running | When the app's connection ends (quit, crash), the helper stops openfortivpn |
+| VPN settings: typed and allowlisted | `writeVpnSettings` takes typed values only, changes only an existing L2TP service and only six keys plus its two keychain secrets, after the same checks as the app ([VpnSettingsWriter.swift](../src/OpenFortiClient.Helper/VpnSettingsWriter.swift); rules under "macOS VPN services") |
 
 The app talks to the helper through `OFCHelperClient` and registers it through `OFCHelperControl` (SMAppService), both in the native library ([src/OpenFortiClient.Native](../src/OpenFortiClient.Native/)), because the Catalyst app cannot use XPC to a daemon or ServiceManagement directly.
 
@@ -227,6 +230,19 @@ The VPN services set up in macOS System Settings, such as the company L2TP VPN a
 | Tests | `SystemVpnConnectionTests` in Core; the UI tests use `FakeSystemVpns` (services from `system-vpns.json`, triggers `system-vpn-drop`, `system-vpn-off-elsewhere`, `system-vpn-start-fails`, calls in `system-vpn.log`) |
 
 The services are listed when the app starts; one added in System Settings later appears after a restart.
+
+**Editing an L2TP service** (Edit… on its row, `SystemVpnEditPage`): server, account, password, shared secret, *Send all traffic* and the PPP keep-alive (echo interval and failures; with Keep it up, the product is how long a dead connection goes unnoticed). Non-secret values are read without root (`OFCSystemVpns.settings:`); the password and the shared secret are never read or shown, and left empty they stay as saved. Saving needs root and goes through the privileged helper's `writeVpnSettings` call, with typed values only:
+
+| Rule | How |
+|---|---|
+| Checked twice | `SystemVpnSettingsChange.Validate` in Core for the message, `VpnSettingsWriter.check` in the helper for the decision: service ID a UUID; server only host-name or IP characters (≤ 253); account ≤ 256 without control characters; secrets ≤ 256 without NUL; keep-alive 5–120 s and 1–30 failures |
+| Only an L2TP service | The service must exist and be PPP over L2TP; anything else is refused |
+| Only these keys | PPP `CommRemoteAddress`, `AuthName`, `LCPEchoEnabled`, `LCPEchoInterval`, `LCPEchoFailure`; IPv4 `OverridePrimary`. Everything else in the service is merged back unchanged |
+| Secrets in place | The System keychain items macOS made for the service (named by the configuration: the service ID, and the service ID + `.SS`) get new data, and the password item the new account; they are never deleted or recreated, so their access lists stay macOS's own. A service without a saved secret yet is refused: set it once in System Settings |
+| All or nothing | Written under `SCPreferencesLock`; committed and applied only after the keychain changes worked |
+| No secrets out | Errors and logs name the service and what changed, never a value (helper tests check the errors) |
+
+A connected service uses the new settings from its next connect; the page offers *Reconnect now*.
 
 ### Menu bar icon
 

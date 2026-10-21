@@ -11,6 +11,8 @@ namespace OpenFortiClient.App.Services.EndToEnd;
 /// macOS's side happen with AppSession.Trigger: <c>system-vpn-drop</c> (the connection is lost),
 /// <c>system-vpn-off-elsewhere</c> (switched off in System Settings), and <c>system-vpn-start-fails</c>
 /// (macOS refuses the next start, as for a service without saved credentials).
+/// L2TP services have settings (server vpn.example.com, account user, send all traffic, keep-alive 20 s × 15);
+/// a save is logged as "save {id} {server} {account} …" with secrets as *** and kept for the next read.
 /// </summary>
 public sealed class FakeSystemVpns : ISystemVpns
 {
@@ -19,6 +21,7 @@ public sealed class FakeSystemVpns : ISystemVpns
     private readonly Lock _lock = new();
     private readonly List<SystemVpnService> _services = [];
     private readonly Dictionary<string, SystemVpnState> _states = [];
+    private readonly Dictionary<string, SystemVpnSettings> _settings = [];
 
     public FakeSystemVpns(string directory)
     {
@@ -31,6 +34,10 @@ public sealed class FakeSystemVpns : ISystemVpns
                 var id = (string)service["id"]!;
                 _services.Add(new SystemVpnService(id, (string)service["name"]!, (string?)service["kind"] ?? "L2TP"));
                 _states[id] = (string?)service["status"] == "connected" ? Up() : SystemVpnState.Disconnected;
+                if (_services[^1].Kind == "L2TP")
+                {
+                    _settings[id] = new SystemVpnSettings("vpn.example.com", "user", SendAllTraffic: true, EchoIntervalSeconds: 20, EchoFailures: 15);
+                }
             }
         }
 
@@ -61,6 +68,27 @@ public sealed class FakeSystemVpns : ISystemVpns
 
         Set(id, new SystemVpnState(SystemVpnStatus.Connecting));
         _ = Task.Delay(300).ContinueWith(_ => Set(id, Up()));
+        return Task.FromResult<string?>(null);
+    }
+
+    public SystemVpnSettings? Settings(string id)
+    {
+        lock (_lock)
+        {
+            return _settings.GetValueOrDefault(id);
+        }
+    }
+
+    public Task<string?> SaveSettingsAsync(string id, SystemVpnSettingsChange change)
+    {
+        var s = change.Settings;
+        Log($"save {id} {s.Server} {s.Account} all={s.SendAllTraffic} echo={s.EchoIntervalSeconds}x{s.EchoFailures}"
+            + $" password={(change.Password is null ? "kept" : "***")} secret={(change.SharedSecret is null ? "kept" : "***")}");
+        lock (_lock)
+        {
+            _settings[id] = s;
+        }
+
         return Task.FromResult<string?>(null);
     }
 

@@ -8,5 +8,6 @@ public partial class AppShell : Shell
     {
         InitializeComponent();
         Routing.RegisterRoute(nameof(ConnectionEditPage), typeof(ConnectionEditPage));
+        Routing.RegisterRoute(nameof(SystemVpnEditPage), typeof(SystemVpnEditPage));
     }
 }

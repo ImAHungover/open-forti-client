@@ -49,6 +49,31 @@ public final class OFCSystemVpns: NSObject {
         return info
     }
 
+    /// The editable settings of an L2TP service, without its password or shared secret (those are never read):
+    /// server, account, sendAllTraffic (Bool), echoInterval and echoFailures (NSNumber). nil if it is not L2TP.
+    /// Changing them needs root: OFCHelperClient.writeVpnSettings(_:).
+    @objc public func settings(_ id: NSString) -> NSDictionary? {
+        guard let prefs = SCPreferencesCreate(nil, "OpenFortiClient" as CFString, nil),
+              let service = SCNetworkServiceCopy(prefs, id),
+              Self.kind(of: service) == "L2TP",
+              let ppp = SCNetworkServiceGetInterface(service) else {
+            return nil
+        }
+
+        let config = SCNetworkInterfaceGetConfiguration(ppp) as? [String: Any] ?? [:]
+        let ipv4 = (SCNetworkServiceCopyProtocols(service) as? [SCNetworkProtocol])?
+            .first { SCNetworkProtocolGetProtocolType($0) as String? == kSCNetworkProtocolTypeIPv4 as String }
+            .flatMap { SCNetworkProtocolGetConfiguration($0) as? [String: Any] } ?? [:]
+        let echoOn = (config["LCPEchoEnabled"] as? NSNumber)?.boolValue ?? false
+        return [
+            "server": config["CommRemoteAddress"] as? String ?? "",
+            "account": config["AuthName"] as? String ?? "",
+            "sendAllTraffic": NSNumber(value: (ipv4["OverridePrimary"] as? NSNumber)?.boolValue ?? false),
+            "echoInterval": echoOn ? config["LCPEchoInterval"] as? NSNumber ?? 20 : 20,
+            "echoFailures": echoOn ? config["LCPEchoFailure"] as? NSNumber ?? 15 : 15,
+        ]
+    }
+
     /// Starts the service with the settings and credentials saved in macOS, as `scutil --nc start` does.
     /// It stays up when the app quits (linger). nil when macOS took the request, otherwise why not.
     @objc public func start(_ id: NSString) -> NSString? {

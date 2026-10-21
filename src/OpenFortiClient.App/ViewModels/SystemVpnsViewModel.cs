@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using OpenFortiClient.App.Services;
+using OpenFortiClient.App.Views;
 using OpenFortiClient.Core.Engine;
 
 namespace OpenFortiClient.App.ViewModels;
@@ -87,6 +89,15 @@ public sealed partial class SystemVpnRowViewModel(SystemVpnSession session, Syst
     public string Name => service.Name;
 
     public string Kind => service.Kind == "IPSec" ? "Cisco IPSec" : service.Kind;
+
+    /// <summary>Only L2TP services can be changed here.</summary>
+    public bool CanEdit => service.Kind == "L2TP";
+
+    [RelayCommand]
+    private Task EditAsync() => Shell.Current.GoToAsync(nameof(SystemVpnEditPage), new Dictionary<string, object>
+    {
+        [SystemVpnEditViewModel.ServiceIdKey] = service.Id,
+    });
 
     [ObservableProperty]
     public partial string StatusText { get; set; } = "Not connected";

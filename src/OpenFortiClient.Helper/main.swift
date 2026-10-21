@@ -52,6 +52,21 @@ final class HelperService: NSObject, OFCHelperProtocol {
     func terminate() {
         session.terminate()
     }
+
+    func writeVpnSettings(
+        serviceId: String, server: String, account: String, sendAllTraffic: Bool, echoInterval: Int, echoFailures: Int,
+        password: String?, sharedSecret: String?, reply: @escaping (String?) -> Void) {
+        do {
+            try VpnSettingsWriter.write(VpnSettingsRequest(
+                serviceId: serviceId, server: server, account: account, sendAllTraffic: sendAllTraffic,
+                echoInterval: echoInterval, echoFailures: echoFailures, password: password, sharedSecret: sharedSecret))
+            NSLog("Changed the settings of VPN service %@.", serviceId)
+            reply(nil)
+        } catch {
+            NSLog("Did not change VPN service %@: %@", serviceId, "\(error)")
+            reply("\(error)")
+        }
+    }
 }
 
 final class ListenerDelegate: NSObject, NSXPCListenerDelegate {

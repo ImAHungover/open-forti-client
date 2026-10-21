@@ -7,9 +7,11 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$(mktemp -d)"
 trap 'rm -rf "$OUT"' EXIT
 
-xcrun swiftc -target arm64-apple-macos14.0 -o "$OUT/helper-tests" \
+# -O, as the helper itself is built (OpenFortiClient.App.csproj): an optimiser difference once hid a bug.
+xcrun swiftc -target arm64-apple-macos14.0 -O -o "$OUT/helper-tests" \
     "$ROOT/src/OpenFortiClient.Helper/OpenFortiVpnSession.swift" \
     "$ROOT/src/OpenFortiClient.Helper/CodeSignature.swift" \
+    "$ROOT/src/OpenFortiClient.Helper/VpnSettingsWriter.swift" \
     "$ROOT/tests/OpenFortiClient.Helper.Tests/main.swift"
 
 # The signature check needs a binary signed like the bundled openfortivpn: with the signing set up for the

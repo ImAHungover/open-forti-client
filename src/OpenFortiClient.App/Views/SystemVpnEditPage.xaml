@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:OpenFortiClient.App.ViewModels"
+             x:Class="OpenFortiClient.App.Views.SystemVpnEditPage"
+             x:DataType="vm:SystemVpnEditViewModel"
+             Title="{Binding Title}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="20" MaximumWidthRequest="620" HorizontalOptions="Center">
+
+            <Label Text="{Binding Title}" Style="{StaticResource Heading}" HorizontalOptions="Center" />
+            <Label Text="These are the settings of the VPN in System Settings → VPN. Saving changes them there, through the privileged helper."
+                   Style="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="12">
+
+                    <Label Text="Server address" Style="{StaticResource FieldLabel}" />
+                    <Entry AutomationId="SystemVpnServerEntry" Grid.Column="1" Text="{Binding Server}" />
+
+                    <Label Grid.Row="1" Text="Account name" Style="{StaticResource FieldLabel}" />
+                    <Entry AutomationId="SystemVpnAccountEntry" Grid.Row="1" Grid.Column="1" Text="{Binding Account}" />
+
+                    <Label Grid.Row="2" Text="Password" Style="{StaticResource FieldLabel}" />
+                    <Entry AutomationId="SystemVpnPasswordEntry" Grid.Row="2" Grid.Column="1" Text="{Binding Password}" IsPassword="True"
+                           Placeholder="Leave empty to keep the saved one" />
+
+                    <Label Grid.Row="3" Text="Shared secret" Style="{StaticResource FieldLabel}" />
+                    <Entry AutomationId="SystemVpnSecretEntry" Grid.Row="3" Grid.Column="1" Text="{Binding SharedSecret}" IsPassword="True"
+                           Placeholder="Leave empty to keep the saved one" />
+
+                    <Label Grid.Row="4" Text="Send all traffic" Style="{StaticResource FieldLabel}" />
+                    <Switch AutomationId="SystemVpnSendAllSwitch" Grid.Row="4" Grid.Column="1" IsToggled="{Binding SendAllTraffic}" HorizontalOptions="Start" />
+
+                    <Label Grid.Row="5" Text="Keep-alive" Style="{StaticResource FieldLabel}" />
+                    <HorizontalStackLayout Grid.Row="5" Grid.Column="1" Spacing="8">
+                        <Label Text="every" VerticalOptions="Center" />
+                        <Entry AutomationId="SystemVpnEchoIntervalEntry" Text="{Binding EchoInterval}" Keyboard="Numeric" WidthRequest="60" />
+                        <Label Text="s, dead after" VerticalOptions="Center" />
+                        <Entry AutomationId="SystemVpnEchoFailuresEntry" Text="{Binding EchoFailures}" Keyboard="Numeric" WidthRequest="60" />
+                        <Label Text="missed" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                    <Label AutomationId="SystemVpnDeadAfterLabel" Grid.Row="6" Grid.Column="1" Text="{Binding DeadAfterText}" Style="{StaticResource Muted}" />
+                </Grid>
+            </Border>
+
+            <Label AutomationId="SystemVpnEditError" Text="{Binding ErrorText}" Style="{StaticResource ErrorText}"
+                   IsVisible="{Binding HasError}" HorizontalTextAlignment="Center" />
+
+            <VerticalStackLayout Spacing="10" IsVisible="{Binding ShowReconnect}">
+                <Label AutomationId="SystemVpnSavedLabel" Text="Saved. The VPN is connected: it uses the new settings from its next connect."
+                       HorizontalTextAlignment="Center" />
+                <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
+                    <Button AutomationId="SystemVpnLaterButton" Text="Later" Style="{StaticResource SecondaryButton}" WidthRequest="140" Command="{Binding CancelCommand}" />
+                    <Button AutomationId="SystemVpnReconnectButton" Text="Reconnect now" WidthRequest="140" Command="{Binding ReconnectCommand}" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <HorizontalStackLayout Spacing="12" HorizontalOptions="Center" IsVisible="{Binding ShowSaveButtons}">
+                <Button AutomationId="SystemVpnCancelButton" Text="Cancel" Style="{StaticResource SecondaryButton}" WidthRequest="140" Command="{Binding CancelCommand}" />
+                <Button AutomationId="SystemVpnSaveButton" Text="Save" WidthRequest="140" Command="{Binding SaveCommand}" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
