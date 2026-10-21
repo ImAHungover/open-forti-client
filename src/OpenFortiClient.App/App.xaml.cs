@@ -6,17 +6,19 @@ namespace OpenFortiClient.App;
 public partial class App : Application
 {
     private readonly VpnSession _session;
+    private readonly SystemVpnSession _systemVpns;
     private readonly StatusMenu _statusMenu;
     private readonly OpenFortiClient.Core.Logging.IAppLog _log;
     private bool _started;
 
-    public App(VpnSession session, StatusMenu statusMenu, OpenFortiClient.Core.Logging.IAppLog log)
+    public App(VpnSession session, SystemVpnSession systemVpns, StatusMenu statusMenu, OpenFortiClient.Core.Logging.IAppLog log)
     {
         InitializeComponent();
 
         // The ResultLab look is dark only, like resultlab.io.
         UserAppTheme = AppTheme.Dark;
         _session = session;
+        _systemVpns = systemVpns;
         _statusMenu = statusMenu;
         _log = log;
     }
@@ -28,6 +30,7 @@ public partial class App : Application
         {
             _started = true;
             _ = _session.InitializeAsync();
+            _ = _systemVpns.InitializeAsync();
             _statusMenu.Install();
         }
 

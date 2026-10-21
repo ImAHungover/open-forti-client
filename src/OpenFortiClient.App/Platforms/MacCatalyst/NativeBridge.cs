@@ -5,7 +5,7 @@ using ObjCRuntime;
 namespace OpenFortiClient.App;
 
 /// <summary>
-/// Loads libOFCNative.dylib (src/OpenFortiClient.Native: menu bar icon, privileged helper client) and
+/// Loads libOFCNative.dylib (src/OpenFortiClient.Native: menu bar icon, privileged helper client, macOS VPN services) and
 /// creates its Objective-C objects. The library is AppKit code built for macOS, which the Catalyst app
 /// cannot link against, so it is loaded at runtime and talked to through selectors.
 /// </summary>
@@ -63,6 +63,18 @@ public static class NativeBridge
         GC.KeepAlive(target);
         GC.KeepAlive(argument);
         return result == IntPtr.Zero ? null : Runtime.GetNSObject<NSString>(result)?.ToString();
+    }
+
+    /// <summary>Calls a method that returns an object (an NSArray or NSDictionary), or nil.</summary>
+    public static T? CallForObject<T>(NSObject target, string selector, NSObject? argument = null)
+        where T : NSObject
+    {
+        var result = selector.EndsWith(':')
+            ? IntPtrObjcMsgSend(target.Handle, Selector.GetHandle(selector), argument?.Handle ?? IntPtr.Zero)
+            : IntPtrObjcMsgSend(target.Handle, Selector.GetHandle(selector));
+        GC.KeepAlive(target);
+        GC.KeepAlive(argument);
+        return result == IntPtr.Zero ? null : Runtime.GetNSObject<T>(result);
     }
 
     private static string? Load()

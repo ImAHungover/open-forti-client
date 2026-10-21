@@ -43,6 +43,7 @@ src/
     Platforms/MacCatalyst/      entry point, Info.plist, entitlements, NativeBridge, StatusMenu,
                                 HelperControl, HelperLauncher, UserNotificationsNotifier, PathNetworkMonitor
   OpenFortiClient.Native/       Swift: menu bar icon, helper client (XPC) and control (SMAppService),
+                                macOS VPN services (SystemConfiguration),
                                 built into libOFCNative.dylib
   OpenFortiClient.Helper/       Swift: the privileged helper (launch daemon) and its XPC protocol
   OpenFortiClient.Core/         plain .NET 10 library, no UI dependencies
@@ -210,6 +211,23 @@ A connection marked **Always up** reconnects by itself when the tunnel is lost. 
 
 A connection marked **Connect when OpenFortiClient starts** connects when the Connect screen first appears, if its password is saved; otherwise a history row says it was skipped. Only one connection can have it: saving one clears it on the others.
 
+`ReconnectSupervisor` watches an `IConnectionState` (a state and its change event), which both the VPN engine and a macOS VPN service provide. The same rules keep a macOS VPN up (*Keep it up*, next section), with one supervisor per connection.
+
+### macOS VPN services
+
+The VPN services set up in macOS System Settings, such as the company L2TP VPN a gateway has to be reached through, appear on the Connect page (a **macOS VPN** card under the FortiGate card) and in the menu bar. The app shows their state and switches them on and off; the services stay macOS's own: their settings, account and shared secret are neither shown, copied nor changed, and quitting the app leaves them as they are.
+
+| Part | How |
+|---|---|
+| macOS side | `OFCSystemVpns` in the native library ([SystemVpns.swift](../src/OpenFortiClient.Native/SystemVpns.swift)), with SystemConfiguration: `SCNetworkServiceCopyAll` lists the enabled VPN services (L2TP and PPTP, which are PPP over an inner interface, and Cisco IPSec); `SCNetworkConnection` reads a service's status and extended status (address, connect time, last cause), starts it with the settings and credentials saved in macOS (no user options, as `scutil --nc start` does; `linger`, so it stays up after the app quits) and stops it. Changes, also those made in System Settings, come back through a callback on a dispatch queue as `systemVpnChanged:` |
+| Status reads | Through a short-lived connection of their own: once a connection is scheduled for callbacks, every status read in the process says disconnected until its first callback. `ConnectTime` counts awake time since boot, so "since" is now minus (`systemUptime` − `ConnectTime`) |
+| Core | `ISystemVpns` (list, state, start, stop, changes) and `SystemVpnConnection`, which reports a service's state as a `VpnState`: a drop while it should be on is an Error after Connected, macOS refusing to start it an error that needs the user, and a switch-off elsewhere a plain Disconnected. `SystemVpnCause` reads the last cause, as measured on a real L2TP VPN (2026-10-21): 5 for a stop from the app or System Settings, 0 when it connects, anything else a drop. No cause is known for a refused login, so Keep it up retries it like a drop. A short Wi-Fi gap does not even end the session: macOS reports Disconnecting and then Connected again |
+| App | `SystemVpns` (`Platforms/MacCatalyst`) wraps the native object; `NoSystemVpns` stands in where it is not macOS, so the card and the menu lines never appear there. `SystemVpnSession` holds one connection, `ReconnectSupervisor` and `ConnectionEvents.ForSystemVpn` per service; `SystemVpnsViewModel` is the card |
+| Keep it up | Per service, saved as `keepUpSystemVpns` (service IDs). The service is brought up when the app starts and reconnected after a drop, with the always-up backoff and network-change rules. Switching it off in the app, or in System Settings, ends reconnecting; macOS refusing to start it (no saved credentials) pauses it with a banner |
+| Tests | `SystemVpnConnectionTests` in Core; the UI tests use `FakeSystemVpns` (services from `system-vpns.json`, triggers `system-vpn-drop`, `system-vpn-off-elsewhere`, `system-vpn-start-fails`, calls in `system-vpn.log`) |
+
+The services are listed when the app starts; one added in System Settings later appears after a restart.
+
 ### Menu bar icon
 
 Mac Catalyst apps cannot use AppKit, so the icon is part of a small Swift library, [src/OpenFortiClient.Native](../src/OpenFortiClient.Native/StatusMenu.swift):
@@ -219,10 +237,10 @@ Mac Catalyst apps cannot use AppKit, so the icon is part of a small Swift librar
 | Build | An MSBuild target in the app's csproj runs `xcrun swiftc -target arm64-apple-macos14.0 -emit-library` into `obj/native/libOFCNative.dylib`. It is built for macOS, not Catalyst, which is what AppKit code loaded into a Catalyst app needs |
 | Packaging | The dylib goes to `Contents/MonoBundle` (`PublishFolderType="DynamicLibrary"`), and the SDK signs it with the app |
 | Loading | `NativeBridge` (`Platforms/MacCatalyst`) `dlopen`s it; `StatusMenu` creates the `OFCStatusMenu` object and calls `install:` and `update:` with plain Foundation objects (`NSDictionary`, `NSString`, `NSNumber`) |
-| Actions | Menu clicks call back into `StatusMenu` through the selectors `statusMenuConnect:`, `statusMenuDisconnect:`, `statusMenuOpen:` and `statusMenuQuit:` |
+| Actions | Menu clicks call back into `StatusMenu` through the selectors `statusMenuConnect:`, `statusMenuDisconnect:`, `statusMenuToggleSystemVpn:`, `statusMenuOpen:` and `statusMenuQuit:` |
 | Failure | If the library cannot be loaded, the app logs it and runs without the icon |
 
-The menu shows the status, "Connect to {name}" per connection (connections without a saved password open the window instead), Disconnect or Stop reconnecting, Open OpenFortiClient, and Quit. The icon is an SF Symbol: open lock (disconnected), shield (connected), rotating lock (connecting), exclamation mark (error or reconnecting).
+The menu shows the status, "Connect to {name}" per connection (connections without a saved password open the window instead), Disconnect or Stop reconnecting, one line per macOS VPN service ("VPN (L2TP): Connected", checked when on; choosing it switches it), Open OpenFortiClient, and Quit. The icon is an SF Symbol: open lock (disconnected), shield (connected), rotating lock (connecting), exclamation mark (error or reconnecting).
 
 **Window and quit:**
 - Closing the window keeps the app and the tunnel running in the menu bar. UIKit quits a Catalyst app whose last window closes unless it supports multiple scenes, so `Info.plist` declares scene support. The app delegate removes "New Window" to keep a single window, and the Swift library answers no to `applicationShouldTerminateAfterLastWindowClosed`.
@@ -250,6 +268,8 @@ The menu shows the status, "Connect to {name}" per connection (connections witho
 | Always up: reconnected | Info, "Reconnected to {host}." | "VPN reconnected" |
 | Always up: paused (needs the user) | Warning, "Always up paused: {reason}" | "Always up paused" |
 | Always up: stopped by the user | Info, "Reconnecting stopped." | none |
+
+A macOS VPN service records the same events with source "macOS VPN", its name instead of the gateway ("Connected to VPN.", "Disconnected from VPN."), banners titled "macOS VPN …", and "Keep it up paused" instead of "Always up paused".
 
 ## Key decisions
 

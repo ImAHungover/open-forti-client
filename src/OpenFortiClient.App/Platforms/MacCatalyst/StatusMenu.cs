@@ -18,14 +18,17 @@ public sealed class StatusMenu : NSObject
     private const string LogSource = "menu bar";
 
     private readonly VpnSession _session;
+    private readonly SystemVpnSession _systemVpns;
     private readonly IProfileStore _profiles;
     private readonly IAppLog _log;
     private NSObject? _menu;
     private IReadOnlyList<VpnProfile> _profileList = [];
+    private IReadOnlyList<SystemVpnItem> _systemVpnList = [];
 
-    public StatusMenu(VpnSession session, IProfileStore profiles, IAppLog log)
+    public StatusMenu(VpnSession session, SystemVpnSession systemVpns, IProfileStore profiles, IAppLog log)
     {
         _session = session;
+        _systemVpns = systemVpns;
         _profiles = profiles;
         _log = log;
     }
@@ -46,6 +49,7 @@ public sealed class StatusMenu : NSObject
 
             _session.StateChanged += (_, _) => Refresh();
             _session.ReconnectChanged += (_, _) => Refresh();
+            _systemVpns.Changed += (_, _) => Refresh();
             Refresh();
         }
         catch (Exception ex)
@@ -71,6 +75,7 @@ public sealed class StatusMenu : NSObject
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 _profileList = profiles;
+                _systemVpnList = _systemVpns.Items;
                 var state = _session.State;
                 var pending = _session.PendingReconnect;
                 var connected = state.Status == VpnStatus.Connected;
@@ -94,6 +99,7 @@ public sealed class StatusMenu : NSObject
                     ["canConnect"] = NSNumber.FromBoolean(!connected && !state.IsBusy),
                     ["canDisconnect"] = NSNumber.FromBoolean(connected || state.IsBusy || reconnecting),
                     ["disconnectTitle"] = new NSString(reconnecting ? "Stop reconnecting" : "Disconnect"),
+                    ["systemVpns"] = NSArray.FromNSObjects([.. _systemVpnList.Select(SystemVpnEntry)]),
                 };
                 NativeBridge.Call(_menu, "update:", info);
             });
@@ -124,6 +130,17 @@ public sealed class StatusMenu : NSObject
     [Export("statusMenuDisconnect:")]
     public void Disconnect(NSObject? sender) => _ = Run(_session.DisconnectAsync);
 
+    /// <summary>A macOS VPN's line: switches it on, or off.</summary>
+    [Export("statusMenuToggleSystemVpn:")]
+    public void ToggleSystemVpn(NSNumber index)
+    {
+        if (index.Int32Value >= 0 && index.Int32Value < _systemVpnList.Count)
+        {
+            var item = _systemVpnList[index.Int32Value];
+            _ = Run(() => _systemVpns.SetOnAsync(item.Service.Id, !IsOn(item)));
+        }
+    }
+
     [Export("statusMenuOpen:")]
     public void Open(NSObject? sender)
     {
@@ -151,6 +168,24 @@ public sealed class StatusMenu : NSObject
                 }
             }));
     }
+
+    private static NSDictionary SystemVpnEntry(SystemVpnItem item)
+    {
+        var status = item.Current.Status switch
+        {
+            SystemVpnStatus.Connected => "Connected",
+            SystemVpnStatus.Connecting => "Connecting…",
+            SystemVpnStatus.Disconnecting => "Disconnecting…",
+            _ when item.PendingReconnect is not null => "Reconnecting…",
+            _ => "Not connected",
+        };
+        return new NSDictionary(
+            new NSString("title"), new NSString($"{item.Service.Name} ({item.Service.Kind}): {status}"),
+            new NSString("on"), NSNumber.FromBoolean(IsOn(item)));
+    }
+
+    private static bool IsOn(SystemVpnItem item) =>
+        item.Current.Status is SystemVpnStatus.Connected or SystemVpnStatus.Connecting || item.PendingReconnect is not null;
 
     private async Task Run(Func<Task> action)
     {

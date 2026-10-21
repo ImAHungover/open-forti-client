@@ -10,6 +10,7 @@ namespace OpenFortiClient.App.ViewModels;
 public sealed partial class SettingsViewModel(
     ISettingsStore settings,
     VpnSession session,
+    SystemVpnSession systemVpns,
     ConfigurationBackupService backup,
     FileAppLog log,
     IDialogService dialogs,
@@ -138,6 +139,7 @@ public sealed partial class SettingsViewModel(
 
         await settings.SaveAsync(updated);
         await session.ApplySettingsAsync(updated);
+        await systemVpns.ApplySettingsAsync(updated);
         await dialogs.AlertAsync("Settings", "Settings saved. They apply from the next connection.");
     }
 
@@ -168,7 +170,9 @@ public sealed partial class SettingsViewModel(
             await using var stream = await file.OpenReadAsync();
             await backup.ImportAsync(stream);
             await LoadAsync();
-            await session.ApplySettingsAsync(await settings.GetAsync());
+            var restored = await settings.GetAsync();
+            await session.ApplySettingsAsync(restored);
+            await systemVpns.ApplySettingsAsync(restored);
             await dialogs.AlertAsync("Restore", "The backup was restored.");
         }
         catch (Exception ex) when (ex is InvalidDataException or System.Text.Json.JsonException)

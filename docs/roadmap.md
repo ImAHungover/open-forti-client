@@ -6,13 +6,15 @@ Status words: **Done**; **Next**: planned, in this order; **TBC**, to be confirm
 
 ## Next up
 
-**Why IPsec matters.** openfortivpn speaks only Fortinet's SSL VPN tunnel mode, and FortiOS 7.6.3 removed tunnel mode on every FortiGate model in favour of IPsec (also over TCP 443); 7.6.0 and 7.6.1 had already removed it on smaller models. Each gateway upgraded past 7.6.3 stops working with OpenFortiClient until it has an IPsec engine. The gateway this project was built for stays on SSL VPN for now, so *Connect first* comes before IPsec, and IPsec waits for a gateway to test against.
+**Why IPsec matters.** openfortivpn speaks only Fortinet's SSL VPN tunnel mode, and FortiOS 7.6.3 removed tunnel mode on every FortiGate model in favour of IPsec (also over TCP 443); 7.6.0 and 7.6.1 had already removed it on smaller models. Each gateway upgraded past 7.6.3 stops working with OpenFortiClient until it has an IPsec engine. The gateway this project was built for stays on SSL VPN for now, so IPsec waits for a gateway to test against.
 
 | # | Item | Status | What |
 |---|---|---|---|
-| 1 | **Connect first** (chain a macOS VPN) | **Next** | A connection can name a VPN set up in System Settings (for example the company L2TP VPN). OpenFortiClient connects it first and waits until its route is up, then connects the gateway; on disconnect, optionally the other way round. Public `SCNetworkConnection` API (SystemConfiguration): start, stop and status of existing services. Small, and solves the setup in [vision.md](vision.md) without leaving the app |
-| 2 | **IPsec spike** | **Parked** (2026-10-20) | Done without a gateway: a Developer ID app can drive macOS's IKEv2 client (`NEVPNManager`); no IPsec over TCP 443; IKE follows the route into the L2TP VPN but falls back to the physical interface after a network error. The rest needs an IPsec gateway and a test account: the gateway in [vision.md](vision.md) stays on SSL VPN for now. Plan and results: [ipsec-spike.md](ipsec-spike.md) |
-| 3 | **IPsec engine** | After the spike | Most likely macOS's client through `NEVPNManager`, as a second engine behind `IVpnEngine`; strongSwan if the spike rules that out. The spike's decision table says which |
+| 1 | **macOS VPN services: status, on/off, keep it up** | **Done** (unreleased) | The VPN services set up in System Settings (the company L2TP VPN in [vision.md](vision.md)) on the Connect page and in the menu bar: their state, an On switch, and *Keep it up* (start with the app, reconnect after a drop). The services stay macOS's own. See [architecture.md](architecture.md#macos-vpn-services) |
+| 2 | **Edit macOS VPN settings** | **Next** | Server, account, password, shared secret, *send all traffic* and PPP keep-alives of those services, from the app. Writing them needs root: through the privileged helper with an allowlist, `SCPreferences` / `SCNetworkInterfaceSetConfiguration`, secrets in the System keychain |
+| — | *Connect first* (a hidden chaining step) | **Dropped** (2026-10-20) | Replaced by the visible on/off and *Keep it up* above: the user wanted to see and switch the L2TP VPN, not have it switched behind the scenes |
+| 3 | **IPsec spike** | **Parked** (2026-10-20) | Done without a gateway: a Developer ID app can drive macOS's IKEv2 client (`NEVPNManager`); no IPsec over TCP 443; IKE follows the route into the L2TP VPN but falls back to the physical interface after a network error. The rest needs an IPsec gateway and a test account: the gateway in [vision.md](vision.md) stays on SSL VPN for now. Plan and results: [ipsec-spike.md](ipsec-spike.md) |
+| 4 | **IPsec engine** | After the spike | Most likely macOS's client through `NEVPNManager`, as a second engine behind `IVpnEngine`; strongSwan if the spike rules that out. The spike's decision table says which |
 
 ## Connection types
 
@@ -31,7 +33,7 @@ OpenFortiClient supports what openfortivpn supports: **Fortinet SSL-VPN** in tun
 | SSL-VPN, **certificate from the Keychain or a smart card** (instead of PEM files) | **TBD** | openfortivpn reads PEM files only; needs PKCS#11 / Keychain support in the engine | Phase 5 question |
 | **IPsec VPN, IKEv2** | **TBC** ([spike](ipsec-spike.md), parked) | Not openfortivpn. Options: macOS's built-in IKEv2 through `NEVPNManager` (Personal VPN entitlement; whether Developer ID allows it is one of the spike's questions), or strongSwan as a second engine. Open: IPsec over TCP 443, split tunnel with the native client | FortiClient's "IPsec VPN" type, and Fortinet's replacement for SSL VPN tunnel mode from FortiOS 7.6.3 |
 | **IPsec VPN, IKEv1 / XAuth** (FortiGate dial-up) | **TBC** ([spike](ipsec-spike.md), parked) | As IKEv2; macOS's built-in client covers IKEv1 with XAuth (`NEVPNProtocolIPSec`) | Older setups; weaker than IKEv2 |
-| **L2TP over IPsec** as a connection type | **TBD**, unlikely | Old (IKEv1, pre-shared key, MS-CHAPv2), not offered by `NEVPNManager`, and built into macOS already. What the setup in [vision.md](vision.md) needs is ordering, not a new type: see *Connect first* in [Next up](#next-up) | |
+| **L2TP over IPsec** as a connection type | **TBD**, unlikely | Old (IKEv1, pre-shared key, MS-CHAPv2), not offered by `NEVPNManager`, and built into macOS already. The app shows and switches macOS's own L2TP services instead: see [Next up](#next-up) | |
 | **ZTNA / EMS** (FortiClient EMS, zero trust tags, compliance) | **TBD** | Needs Fortinet's EMS protocol; there is no open implementation | Out of scope unless that changes |
 | Our **own engine** (TLS plus PPP in .NET or Swift, Network Extension) | **TBD** | Phase 5 of [vision.md](vision.md): removes root and `pppd`; large and security-critical | Decide based on what openfortivpn cannot do |
 

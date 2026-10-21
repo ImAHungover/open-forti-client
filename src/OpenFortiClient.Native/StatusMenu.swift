@@ -40,7 +40,8 @@ public final class OFCStatusMenu: NSObject, NSMenuDelegate {
     }
 
     /// Keys: status (String), state ("connected" | "busy" | "reconnecting" | "error" | "disconnected"),
-    /// profiles ([String]), canConnect (Bool), canDisconnect (Bool), disconnectTitle (String).
+    /// profiles ([String]), canConnect (Bool), canDisconnect (Bool), disconnectTitle (String),
+    /// systemVpns ([[title: String, on: Bool]]: the macOS VPN services, each line switches one on or off).
     @objc public func update(_ info: NSDictionary) {
         self.info = info as? [String: Any] ?? [:]
         render()
@@ -87,6 +88,19 @@ public final class OFCStatusMenu: NSObject, NSMenuDelegate {
             menu.addItem(disconnect)
         }
 
+        // macOS VPN services (the company L2TP VPN): a check mark when on; choosing the line switches it.
+        let systemVpns = info["systemVpns"] as? [[String: Any]] ?? []
+        if !systemVpns.isEmpty {
+            menu.addItem(.separator())
+            for (index, vpn) in systemVpns.enumerated() {
+                let entry = NSMenuItem(title: vpn["title"] as? String ?? "VPN", action: #selector(toggleSystemVpn(_:)), keyEquivalent: "")
+                entry.target = self
+                entry.tag = index
+                entry.state = vpn["on"] as? Bool ?? false ? .on : .off
+                menu.addItem(entry)
+            }
+        }
+
         menu.addItem(.separator())
         let open = NSMenuItem(title: "Open OpenFortiClient", action: #selector(open(_:)), keyEquivalent: "")
         open.target = self
@@ -100,6 +114,10 @@ public final class OFCStatusMenu: NSObject, NSMenuDelegate {
 
     @objc private func connect(_ sender: NSMenuItem) {
         send("statusMenuConnect:", NSNumber(value: sender.tag))
+    }
+
+    @objc private func toggleSystemVpn(_ sender: NSMenuItem) {
+        send("statusMenuToggleSystemVpn:", NSNumber(value: sender.tag))
     }
 
     @objc private func disconnect(_ sender: NSMenuItem) {

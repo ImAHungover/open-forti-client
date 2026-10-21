@@ -80,6 +80,18 @@ public static class MauiProgram
         services.AddSingleton<VpnSession>();
         services.AddSingleton<StatusMenu>();
 
+        // The VPN services set up in macOS System Settings (the company L2TP VPN): macOS only.
+        if (OperatingSystem.IsMacCatalyst())
+        {
+            services.AddSingleton<ISystemVpns, SystemVpns>();
+        }
+        else
+        {
+            services.AddSingleton<ISystemVpns, NoSystemVpns>();
+        }
+
+        services.AddSingleton<SystemVpnSession>();
+
 #if E2E
         // End-to-end UI tests: no root, no Keychain, scripted openfortivpn behind a fake helper (registered
         // last, so these win).
@@ -91,12 +103,14 @@ public static class MauiProgram
             services.AddSingleton<ISecretStore>(new FileSecretStore(directory));
             services.AddSingleton<ISystemNotifier>(new FileSystemNotifier(directory));
             services.AddSingleton<INetworkMonitor>(new FileNetworkMonitor(directory));
+            services.AddSingleton<ISystemVpns>(new FakeSystemVpns(directory));
         }
 #endif
 
         // View models hold the state and are singletons. Pages are made per window: a window closed to the
         // menu bar keeps its pages, so the window that "Open OpenFortiClient" brings back needs new ones.
         services.AddSingleton<ConnectViewModel>();
+        services.AddSingleton<SystemVpnsViewModel>();
         services.AddTransient<ConnectPage>();
         services.AddTransient<ConnectionEditViewModel>();
         services.AddTransient<ConnectionEditPage>();

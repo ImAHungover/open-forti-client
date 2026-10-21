@@ -45,6 +45,9 @@ public sealed class AppSession : IDisposable
     /// <summary>The saved passwords (the test build's stand-in for the Keychain), as "key\tvalue".</summary>
     public IReadOnlyList<string> Secrets => ReadLines("secrets.txt");
 
+    /// <summary>What the app asked macOS to do with its VPN services: "start {id}", "stop {id}" (FakeSystemVpns).</summary>
+    public IReadOnlyList<string> SystemVpnCalls => ReadLines("system-vpn.log");
+
     /// <summary>The app's own log (app.log in the test folder).</summary>
     public string AppLog
     {

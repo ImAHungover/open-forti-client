@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **macOS VPN** (macOS only): the VPN services set up in System Settings (L2TP, Cisco IPSec, PPTP), such as a company L2TP VPN the gateway is reached through, appear on the Connect page and in the menu bar. They show their status (since when, which address), switch on and off, and can be kept up: started with the app and reconnected after a drop, with the same backoff as *Always up*. Their settings, account and secret stay in System Settings, and quitting the app leaves them running.
+
 ## 1.0.0 (2026-10-20)
 
 The first public release of OpenFortiClient, a ResultLab open-source client for Fortinet SSL-VPN gateways on macOS (Apple Silicon, macOS 14 or later).

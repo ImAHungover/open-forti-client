@@ -51,6 +51,7 @@ The features follow the screens of the official client (see [flows.md](docs/raw/
 - **Notifications**: a history of connection events and errors.
 - **About**: version and licence information.
 - **Menu bar icon**: quick connect and disconnect without opening the main window.
+- **macOS VPN** (macOS only): the VPN services set up in System Settings, such as a company L2TP VPN the gateway is reached through, with their status, an on/off switch and *Keep it up* (start with the app, reconnect after a drop), on the Connect page and in the menu bar. Their settings stay in System Settings.
 
 Not yet supported: IPsec VPN (FortiOS 7.6.3 removed SSL VPN tunnel mode; first findings in [docs/ipsec-spike.md](docs/ipsec-spike.md)), SAML/SSO login (openfortivpn has partial support). Out of scope: EMS / Zero Trust features.
 
@@ -100,7 +101,7 @@ src/
     Services/                   VpnSession, Keychain store, dialogs
       EndToEnd/                 Debug-only test mode for the UI tests
     Platforms/MacCatalyst/      entry point, Info.plist, entitlements
-  OpenFortiClient.Native/       Swift: menu bar icon, helper client and control, built into the app as an AppKit library
+  OpenFortiClient.Native/       Swift: menu bar icon, helper client and control, macOS VPN services; built into the app as an AppKit library
   OpenFortiClient.Helper/       Swift: the privileged helper (launch daemon) that runs the bundled openfortivpn as root
 tests/
   OpenFortiClient.Core.Tests/   xUnit tests for Core (engine runs against a fake launcher)
@@ -148,7 +149,7 @@ Phase 4b, the public release, is done: the app is signed with Developer ID and n
 | 3. Comfort | Menu bar icon, auto-connect, reconnect on network change, backup and restore | ✅ Done (2026-10-17): always up with backoff and retry on network change, auto-connect at start, menu bar icon (the app keeps running when its window closes), backup and restore. Start at login is left for later |
 | 4. Polish and release (free tier) | `SMAppService` privileged helper, client private key in the Keychain, release build, install script, licence | ✅ Done (2026-10-18). Release builds use the helper; the sudoers rule is for development builds only. Version 1.0.0, MIT |
 | 4b. Public release | Developer ID signing and notarisation, Homebrew cask, GitHub repository and releases, a verified openfortivpn inside the app | ✅ Done (2026-10-20): v1.0.0 notarised on GitHub Releases and in the `imahungover/tap` cask. Runbook: [docs/release.md](docs/release.md) |
-| Next | "Connect first" (chain a macOS VPN such as L2TP); IPsec once a gateway is available to test (spike parked) | Planned: [docs/roadmap.md](docs/roadmap.md#next-up), [docs/ipsec-spike.md](docs/ipsec-spike.md) |
+| Next | macOS VPN services (status, on/off, keep it up: done, unreleased), then editing their settings; IPsec once a gateway is available to test (spike parked) | [docs/roadmap.md](docs/roadmap.md#next-up), [docs/ipsec-spike.md](docs/ipsec-spike.md) |
 | Later | More connection types (SAML, …) and other improvements | TBC/TBD: [docs/roadmap.md](docs/roadmap.md) |
 | 5. Decide on the engine | Keep openfortivpn, or build our own implementation | Not started (after phase 3) |
 

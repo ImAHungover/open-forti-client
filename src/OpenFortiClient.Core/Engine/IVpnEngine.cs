@@ -6,13 +6,8 @@ namespace OpenFortiClient.Core.Engine;
 /// Everything the UI needs from a VPN implementation. openfortivpn is the first one;
 /// keeping the UI behind this interface lets us replace it later.
 /// </summary>
-public interface IVpnEngine
+public interface IVpnEngine : IConnectionState
 {
-    VpnState State { get; }
-
-    /// <summary>Raised on a background thread.</summary>
-    event EventHandler<VpnState>? StateChanged;
-
     /// <summary>
     /// A gateway failed in a way that makes trying the next one worthwhile (unreachable, tunnel not
     /// set up). Not raised for a rejected login. Raised on a background thread.

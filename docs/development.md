@@ -49,7 +49,7 @@ Known to work together (2026-10-19):
 | Node.js | 26.12 | Appium | Homebrew |
 | Appium / mac2 driver | 3.8.0 / 4.4.0 | UI tests | `npm`, `appium driver install mac2` |
 
-The Swift parts (`src/OpenFortiClient.Native`, `src/OpenFortiClient.Helper`) have no packages: they use the macOS SDK only (AppKit, ServiceManagement, Foundation/XPC).
+The Swift parts (`src/OpenFortiClient.Native`, `src/OpenFortiClient.Helper`) have no packages: they use the macOS SDK only (AppKit, ServiceManagement, SystemConfiguration, Foundation/XPC).
 
 ## One-time setup
 
@@ -156,7 +156,7 @@ To update it, change the version and SHA-256 in the script (`brew info --json=v2
 |---|---|---|
 | [OpenFortiClient.Core.Tests](../tests/OpenFortiClient.Core.Tests/) | Engine state machine, output parsing, config files, stores | `dotnet test OpenFortiClient.Core.slnf` (seconds, no Xcode needed) |
 | [OpenFortiClient.Helper.Tests](../tests/OpenFortiClient.Helper.Tests/) | The helper's session logic: only the bundled openfortivpn, run from a checked private copy, allowed config keys, 0600 files and when they go, output, OTP, SIGTERM. And its signature check against signed, ad hoc, unsigned and altered binaries (needs `Signing.local.props`, otherwise skipped) | `./scripts/test-helper.sh` (seconds, no root) |
-| [OpenFortiClient.App.UiTests](../tests/OpenFortiClient.App.UiTests/) | The real app, end to end, driven through its UI | `./scripts/run-ui-tests.sh --quick` (12 tests, one per main flow, about 2 minutes) while working; `./scripts/run-ui-tests.sh` (all 47, about 9 minutes) before a release; `--release` runs against a trimmed Release build |
+| [OpenFortiClient.App.UiTests](../tests/OpenFortiClient.App.UiTests/) | The real app, end to end, driven through its UI | `./scripts/run-ui-tests.sh --quick` (13 tests, one per main flow, about 2 minutes) while working; `./scripts/run-ui-tests.sh` (all 53, about 10 minutes) before a release; `--release` runs against a trimmed Release build |
 
 ### End-to-end UI tests
 

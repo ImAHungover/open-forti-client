@@ -61,6 +61,36 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- The VPN services set up in macOS System Settings (the company L2TP VPN). Its own binding
+                 context, set in code: SystemVpnsViewModel. Hidden when there are none, and when not on macOS. -->
+            <Border x:Name="SystemVpnCard" AutomationId="SystemVpnCard" Style="{StaticResource Card}"
+                    x:DataType="vm:SystemVpnsViewModel" IsVisible="{Binding HasServices}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="macOS VPN" Style="{StaticResource SectionTitle}" />
+                    <VerticalStackLayout Spacing="16" BindableLayout.ItemsSource="{Binding Rows}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SystemVpnRowViewModel">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="4">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label AutomationId="SystemVpnName" Text="{Binding Name}" FontAttributes="Bold" VerticalOptions="Center" />
+                                        <Label Text="{Binding Kind}" Style="{StaticResource Muted}" VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                    <Label AutomationId="SystemVpnStatus" Grid.Row="1" Text="{Binding StatusText}" Style="{StaticResource Muted}" />
+                                    <Switch AutomationId="SystemVpnSwitch" Grid.RowSpan="2" Grid.Column="1" IsToggled="{Binding IsOn}"
+                                            VerticalOptions="Center" ToolTipProperties.Text="Switch this macOS VPN on or off" />
+                                    <HorizontalStackLayout Grid.Row="2" Spacing="8">
+                                        <Switch AutomationId="SystemVpnKeepUpSwitch" IsToggled="{Binding KeepUp}" VerticalOptions="Center" />
+                                        <Label Text="Keep it up (start with the app, reconnect after a drop)" Style="{StaticResource Muted}" VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                    <Label AutomationId="SystemVpnError" Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding ErrorText}"
+                                           Style="{StaticResource ErrorText}" IsVisible="{Binding HasError}" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

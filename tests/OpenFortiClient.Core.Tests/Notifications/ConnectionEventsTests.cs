@@ -201,4 +201,43 @@ public sealed class ConnectionEventsTests
     }
 
     private static VpnState Error(VpnErrorKind kind, string message) => new(VpnStatus.Error, null, new VpnError(kind, message));
+    [Fact]
+    public void A_macOS_VPN_is_named_by_its_service()
+    {
+        var events = ConnectionEvents.ForSystemVpn("VPN");
+        events.OnStateChanged(new VpnState(VpnStatus.Connecting), Now);
+
+        var connected = events.OnStateChanged(new VpnState(VpnStatus.Connected), Now);
+        var lost = events.OnStateChanged(new VpnState(VpnStatus.Error, Error: new VpnError(VpnErrorKind.TunnelFailed, "VPN lost its connection.")), Now);
+        var scheduled = events.OnReconnectScheduled(new ReconnectSchedule(1, TimeSpan.FromSeconds(5), Now), host: null, Now);
+        var paused = events.OnReconnectPaused("VPN refused the login.", Now);
+
+        Assert.Equal(new NotificationEntry(Now, "macOS VPN", "Connected to VPN."), connected?.Entry);
+        Assert.Equal("macOS VPN connected", connected?.Banner?.Title);
+        Assert.Equal("macOS VPN connection lost", lost?.Banner?.Title);
+        Assert.Equal("Reconnecting to VPN in 5 s (attempt 1).", scheduled.Entry.Message);
+        Assert.Equal("Keep it up paused: VPN refused the login.", paused.Entry.Message);
+    }
+
+    [Fact]
+    public void A_macOS_VPN_that_was_up_at_start_is_lost_not_failed()
+    {
+        var events = ConnectionEvents.ForSystemVpn("VPN", VpnStatus.Connected);
+
+        var e = events.OnStateChanged(new VpnState(VpnStatus.Error, Error: new VpnError(VpnErrorKind.TunnelFailed, "VPN lost its connection.")), Now);
+
+        Assert.Equal("macOS VPN connection lost", e?.Banner?.Title);
+    }
+
+    [Fact]
+    public void A_macOS_VPN_switched_off_is_recorded_by_name()
+    {
+        var events = ConnectionEvents.ForSystemVpn("VPN");
+        events.OnStateChanged(new VpnState(VpnStatus.Connected), Now);
+
+        var e = events.OnStateChanged(VpnState.Disconnected, Now);
+
+        Assert.Equal("Disconnected from VPN.", e?.Entry.Message);
+        Assert.Null(e?.Banner);
+    }
 }

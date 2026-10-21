@@ -22,5 +22,6 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.True(settings.SetDns);
         Assert.True(settings.SetRoutes);
         Assert.Equal(new AppSettings().OpenFortiVpnPath, settings.OpenFortiVpnPath);
+        Assert.Empty(settings.KeepUpSystemVpns);
     }
 }

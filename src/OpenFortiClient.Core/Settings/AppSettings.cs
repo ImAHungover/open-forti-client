@@ -50,4 +50,10 @@ public sealed record AppSettings
     /// Not on the Settings page; null means 5, 10, 30, 60. The UI tests set short ones.
     /// </summary>
     public List<int>? ReconnectDelaysSeconds { get; set; }
+
+    /// <summary>
+    /// macOS VPN services to keep up, by service ID: brought up when the app starts and reconnected after
+    /// a drop. Set with the "Keep it up" switch on the Connect page.
+    /// </summary>
+    public List<string> KeepUpSystemVpns { get; set; } = [];
 }

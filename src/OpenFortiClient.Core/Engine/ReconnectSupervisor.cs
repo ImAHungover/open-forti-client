@@ -6,11 +6,12 @@ public sealed record ReconnectSchedule(int Attempt, TimeSpan Delay, DateTimeOffs
 /// <summary>
 /// "Always up": reconnects after a lost tunnel, waiting longer after each failed attempt, until it
 /// works, the user stops it, or an error needs the user (wrong password, new certificate, …).
+/// Watches the VPN engine, or a macOS VPN service for its "Keep it up" (one supervisor per connection).
 /// See docs/architecture.md, "Reconnect (always up)".
 /// </summary>
 public sealed class ReconnectSupervisor
 {
-    private readonly IVpnEngine _engine;
+    private readonly IConnectionState _connection;
     private readonly Func<CancellationToken, Task> _reconnect;
     private readonly TimeProvider _time;
     private readonly Lock _lock = new();
@@ -25,13 +26,17 @@ public sealed class ReconnectSupervisor
     // A network change arrived while an attempt was running: if it fails, retry at once.
     private bool _retryAfterAttempt;
 
-    /// <param name="reconnect">Connects again with the last profile and credentials.</param>
-    public ReconnectSupervisor(IVpnEngine engine, Func<CancellationToken, Task> reconnect, TimeProvider? time = null)
+    /// <param name="connection">The connection to keep up.</param>
+    /// <param name="reconnect">Connects again, for the engine with the last profile and credentials.</param>
+    public ReconnectSupervisor(IConnectionState connection, Func<CancellationToken, Task> reconnect, TimeProvider? time = null)
     {
-        _engine = engine;
+        _connection = connection;
         _reconnect = reconnect;
         _time = time ?? TimeProvider.System;
-        _engine.StateChanged += OnStateChanged;
+
+        // A macOS VPN can already be up when the app starts: its first drop must count as lost.
+        _last = connection.State.Status;
+        _connection.StateChanged += OnStateChanged;
     }
 
     public static IReadOnlyList<TimeSpan> DefaultDelays { get; } =
@@ -55,7 +60,7 @@ public sealed class ReconnectSupervisor
         }
     }
 
-    /// <summary>A reconnect was scheduled. Raised on the thread that changed the engine state.</summary>
+    /// <summary>A reconnect was scheduled. Raised on the thread that changed the connection's state.</summary>
     public event EventHandler<ReconnectSchedule>? Scheduled;
 
     /// <summary>Reconnecting stopped because of an error the user has to deal with; the argument says which.</summary>
